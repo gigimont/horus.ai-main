@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, BackgroundTasks
 from typing import Optional
 import csv, io
 from dependencies import get_db, get_tenant_id
 from models.target import TargetCreate, TargetUpdate
 from supabase import Client
+from services.scoring_service import score_single_target
 
 router = APIRouter()
 
@@ -140,3 +141,17 @@ async def bulk_import(
 
     result = db.table("targets").insert(rows).execute()
     return {"inserted": len(result.data), "targets": result.data}
+
+
+@router.post("/{target_id}/score")
+async def score_target_route(
+    target_id: str,
+    background_tasks: BackgroundTasks,
+    tenant_id: str = Depends(get_tenant_id),
+    db: Client = Depends(get_db)
+):
+    result = db.table("targets").select("id").eq("id", target_id).eq("tenant_id", tenant_id).single().execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Target not found")
+    background_tasks.add_task(score_single_target, target_id, tenant_id)
+    return {"message": "Scoring started", "target_id": target_id}

@@ -32,6 +32,20 @@ async def batch_score(
     background_tasks.add_task(score_all_unscored, unscored, tenant_id, _job_status)
     return {"message": "Batch scoring started", "total": len(unscored)}
 
+@router.post("/{target_id}/sync")
+async def score_target_sync(
+    target_id: str,
+    tenant_id: str = Depends(get_tenant_id),
+    db: Client = Depends(get_db)
+):
+    """Score a single target synchronously and return the result immediately."""
+    result = db.table("targets").select("*").eq("id", target_id).eq("tenant_id", tenant_id).single().execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Target not found")
+
+    scores = await score_single_target(target_id, tenant_id)
+    return {"target_id": target_id, "scores": scores}
+
 @router.post("/{target_id}")
 async def score_target(
     target_id: str,
