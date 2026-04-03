@@ -19,3 +19,9 @@ package-lock.json
 .DS_Store
 */.DS_Store
 .idea
+.env.local
+.env*.local
+.next/
+.turbo/
+supabase/.branches/
+supabase/.temp/
