@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 router = APIRouter()
 
-@router.get("/")
-def placeholder():
-    return {"message": "not yet implemented"}
+@router.post("/")
+def chat():
+    return {"message": "AI copilot chat — implemented in Session 7"}

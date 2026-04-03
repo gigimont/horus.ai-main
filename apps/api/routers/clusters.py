@@ -2,5 +2,9 @@ from fastapi import APIRouter
 router = APIRouter()
 
 @router.get("/")
-def placeholder():
-    return {"message": "not yet implemented"}
+def list_clusters():
+    return {"message": "Cluster discovery — implemented in Session 7"}
+
+@router.post("/refresh")
+def refresh_clusters():
+    return {"message": "Cluster refresh — implemented in Session 7"}
