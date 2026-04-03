@@ -1,0 +1,1 @@
+Read CLAUDE.md and docs/01_landing_page/spec.md. Then make all the pre-written tests in tests/phase1/ pass, following the TDD workflow described in CLAUDE.md. After those pass, continue building out the hero and features sections from the spec.

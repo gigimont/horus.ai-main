@@ -1,0 +1,28 @@
+{
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npx *)",
+      "Bash(python *)",
+      "Bash(pip *)",
+      "Bash(uvicorn *)",
+      "Bash(git *)",
+      "Bash(curl *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Edit(frontend/**)",
+      "Edit(backend/**)",
+      "Edit(tests/**)",
+      "Write(frontend/**)",
+      "Write(backend/**)",
+      "Write(docs/**)",
+      "Read(**)",
+      "WebSearch",
+      "AskUserQuestion"
+    ]
+  }
+}

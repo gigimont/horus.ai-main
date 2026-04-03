@@ -1,0 +1,12 @@
+{
+  "name": "ESMT x OURBASE Hackathon",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "postCreateCommand": "npm install -g @anthropic-ai/claude-code && echo '✅ Claude Code installed. Run: claude'",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}
