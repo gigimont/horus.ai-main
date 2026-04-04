@@ -1,0 +1,81 @@
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
+
+async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(err || `API error ${res.status}`)
+  }
+  return res.json()
+}
+
+export const api = {
+  targets: {
+    list: (params?: Record<string, string>) => {
+      const qs = params ? '?' + new URLSearchParams(params).toString() : ''
+      return apiFetch<{ data: Target[]; count: number }>(`/targets/${qs}`)
+    },
+    get: (id: string) => apiFetch<Target>(`/targets/${id}`),
+    create: (body: Partial<Target>) =>
+      apiFetch<Target>('/targets/', { method: 'POST', body: JSON.stringify(body) }),
+    delete: (id: string) =>
+      apiFetch<void>(`/targets/${id}`, { method: 'DELETE' }),
+    score: (id: string) =>
+      apiFetch<{ message: string }>(`/targets/${id}/score`, { method: 'POST' }),
+    bulkImport: (file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      return apiFetch<{ inserted: number }>('/targets/bulk', {
+        method: 'POST',
+        body: form,
+        headers: {},
+      })
+    },
+  },
+  scoring: {
+    batch: () => apiFetch<{ message: string; total: number }>('/scoring/batch', { method: 'POST' }),
+    status: () => apiFetch<{ running: boolean; total: number; done: number; errors: number }>('/scoring/status'),
+  },
+}
+
+export interface Filters {
+  search: string
+  country: string
+  industry_code: string
+  score_min: string
+  score_max: string
+}
+
+export interface TargetScore {
+  overall_score: number
+  transition_score: number
+  value_score: number
+  market_score: number
+  financial_score: number
+  rationale: string
+  key_signals: string[]
+  scored_at: string
+}
+
+export interface Target {
+  id: string
+  tenant_id: string
+  name: string
+  country: string | null
+  region: string | null
+  city: string | null
+  industry_label: string | null
+  industry_code: string | null
+  employee_count: number | null
+  revenue_eur: number | null
+  founded_year: number | null
+  owner_age_estimate: number | null
+  website: string | null
+  linkedin_url: string | null
+  created_at: string
+  updated_at: string
+  target_scores: TargetScore[]
+}
