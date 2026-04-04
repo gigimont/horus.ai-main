@@ -1,0 +1,143 @@
+'use client'
+import { useState, useEffect, useRef } from 'react'
+import { api, Cluster } from '@/lib/api/client'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import ScoreBadge from '@/components/shared/ScoreBadge'
+import { RefreshCw, Loader2, MapPin, Building2 } from 'lucide-react'
+import Link from 'next/link'
+
+const TRANSITION_COLORS: Record<string, string> = {
+  high:   'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+  medium: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+  low:    'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+}
+
+export default function ClustersPage() {
+  const [clusters, setClusters] = useState<Cluster[]>([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const pollRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
+
+  const load = async () => {
+    const res = await api.clusters.list()
+    setClusters(res.data)
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [])
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await api.clusters.refresh()
+    pollRef.current = setInterval(async () => {
+      const status = await api.clusters.status()
+      if (!status.running) {
+        clearInterval(pollRef.current)
+        await load()
+        setRefreshing(false)
+      }
+    }, 1500)
+  }
+
+  useEffect(() => () => clearInterval(pollRef.current), [])
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Clusters</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            {loading ? 'Loading…' : clusters.length === 0
+              ? 'No clusters yet — click Refresh to generate'
+              : `${clusters.length} clusters · ${clusters.reduce((s, c) => s + c.member_count, 0)} targets grouped`}
+          </p>
+        </div>
+        <Button size="sm" variant="outline" className="gap-2" onClick={handleRefresh} disabled={refreshing}>
+          {refreshing
+            ? <><Loader2 className="h-4 w-4 animate-spin" /> Clustering…</>
+            : <><RefreshCw className="h-4 w-4" /> Refresh clusters</>}
+        </Button>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Loading clusters…</p>
+      ) : clusters.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">
+            Click <strong>Refresh clusters</strong> to group your targets by geography, industry, and transition readiness.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {clusters.map(cluster => {
+            const bracket = cluster.metadata?.transition_bracket
+            const members = cluster.cluster_members?.slice(0, 4) ?? []
+            return (
+              <Card key={cluster.id}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-sm font-semibold leading-snug">{cluster.label}</CardTitle>
+                    {bracket && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${TRANSITION_COLORS[bracket] ?? ''}`}>
+                        {bracket} transition
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">{cluster.description}</p>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-3">
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    {cluster.metadata?.country && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />{cluster.metadata.country}
+                      </span>
+                    )}
+                    {cluster.metadata?.industry_label && (
+                      <span className="flex items-center gap-1">
+                        <Building2 className="h-3 w-3" />{cluster.metadata.industry_label}
+                      </span>
+                    )}
+                    <Badge variant="secondary" className="text-xs font-normal">
+                      {cluster.member_count} companies
+                    </Badge>
+                  </div>
+                  <div className="divide-y">
+                    {members.map(m => {
+                      const t = m.targets
+                      if (!t) return null
+                      const score = t.target_scores?.[0]?.overall_score
+                      return (
+                        <Link
+                          key={m.target_id}
+                          href={`/discovery/${t.id}`}
+                          className="flex items-center justify-between py-1.5 hover:text-primary transition-colors"
+                        >
+                          <div>
+                            <span className="text-xs font-medium">{t.name}</span>
+                            {(t.city || t.country) && (
+                              <span className="text-xs text-muted-foreground ml-1.5">
+                                {[t.city, t.country].filter(Boolean).join(', ')}
+                              </span>
+                            )}
+                          </div>
+                          <ScoreBadge score={score} size="sm" />
+                        </Link>
+                      )
+                    })}
+                  </div>
+                  {cluster.member_count > 4 && (
+                    <p className="text-xs text-muted-foreground">
+                      +{cluster.member_count - 4} more companies in this cluster
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import ScoreBadge from '@/components/shared/ScoreBadge'
 import ScoreGauge from '../components/ScoreGauge'
 import CopilotChat from '../components/CopilotChat'
+import AddToPipelineButton from '../components/AddToPipelineButton'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
@@ -81,7 +82,7 @@ export default async function TargetDetailPage({ params }: { params: Promise<{ i
             )}
           </div>
         </div>
-        <Button size="sm" variant="outline">Add to pipeline</Button>
+        <AddToPipelineButton targetId={id} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

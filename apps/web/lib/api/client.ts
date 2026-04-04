@@ -46,6 +46,21 @@ export const api = {
     batch: () => apiFetch<{ message: string; total: number }>('/scoring/batch', { method: 'POST' }),
     status: () => apiFetch<{ running: boolean; total: number; done: number; errors: number }>('/scoring/status'),
   },
+  pipeline: {
+    list: () => apiFetch<{ data: PipelineEntry[] }>('/pipeline/'),
+    update: (id: string, stage: string) =>
+      apiFetch<PipelineEntry>(`/pipeline/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ stage }),
+      }),
+    remove: (id: string) =>
+      apiFetch<void>(`/pipeline/${id}`, { method: 'DELETE' }),
+  },
+  clusters: {
+    list: () => apiFetch<{ data: Cluster[] }>('/clusters/'),
+    refresh: () => apiFetch<{ message: string }>('/clusters/refresh', { method: 'POST' }),
+    status: () => apiFetch<{ running: boolean; done: boolean; count: number }>('/clusters/status'),
+  },
 }
 
 export interface Filters {
@@ -85,6 +100,48 @@ export interface Target {
   created_at: string
   updated_at: string
   target_scores: TargetScore[]
+}
+
+export interface PipelineEntry {
+  id: string
+  target_id: string
+  stage: string
+  notes: string | null
+  created_at: string
+  updated_at: string
+  targets: {
+    id: string
+    name: string
+    country: string | null
+    city: string | null
+    industry_label: string | null
+    target_scores: { overall_score: number }[]
+  } | null
+}
+
+export interface Cluster {
+  id: string
+  label: string
+  description: string
+  cluster_type: string
+  member_count: number
+  metadata: {
+    country: string
+    industry_label: string
+    transition_bracket: string
+    member_ids: string[]
+  }
+  cluster_members: {
+    target_id: string
+    targets: {
+      id: string
+      name: string
+      country: string | null
+      city: string | null
+      industry_label: string | null
+      target_scores: { overall_score: number }[]
+    } | null
+  }[]
 }
 
 export async function streamChat(
