@@ -29,7 +29,11 @@ async def list_targets(
     if industry_code:
         query = query.eq("industry_code", industry_code)
     if search:
-        query = query.ilike("name", f"%{search}%")
+        import unicodedata
+        def normalize(s: str) -> str:
+            return unicodedata.normalize('NFD', s).encode('ascii', 'ignore').decode('ascii').lower()
+        normalized_search = normalize(search)
+        query = query.or_(f"name.ilike.%{search}%,name.ilike.%{normalized_search}%")
 
     query = query.order("created_at", desc=True).range(offset, offset + limit - 1)
     result = query.execute()

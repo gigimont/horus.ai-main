@@ -5,7 +5,10 @@ import TargetTable from './components/TargetTable'
 import FilterPanel from './components/FilterPanel'
 import ImportButton from './components/ImportButton'
 import ScoreAllButton from './components/ScoreAllButton'
+import MapView from './components/MapView'
 import { Skeleton } from '@/components/ui/skeleton'
+import { List, Map } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const EMPTY_FILTERS: Filters = { search: '', country: '', industry_code: '', score_min: '', score_max: '' }
 
@@ -13,6 +16,7 @@ export default function DiscoveryPage() {
   const [targets, setTargets] = useState<Target[]>([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
+  const [view, setView] = useState<'table' | 'map'>('table')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -44,6 +48,20 @@ export default function DiscoveryPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 border rounded-md p-0.5">
+            <button
+              onClick={() => setView('table')}
+              className={cn('p-1.5 rounded', view === 'table' ? 'bg-muted' : 'hover:bg-muted/50')}
+            >
+              <List className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setView('map')}
+              className={cn('p-1.5 rounded', view === 'map' ? 'bg-muted' : 'hover:bg-muted/50')}
+            >
+              <Map className="h-4 w-4" />
+            </button>
+          </div>
           <ImportButton onImported={load} />
           <ScoreAllButton onComplete={load} />
         </div>
@@ -57,6 +75,8 @@ export default function DiscoveryPage() {
             <Skeleton key={i} className="h-12 w-full rounded-lg" />
           ))}
         </div>
+      ) : view === 'map' ? (
+        <MapView targets={targets} />
       ) : (
         <TargetTable targets={targets} onDelete={handleDelete} />
       )}

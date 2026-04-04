@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Sparkles, Loader2 } from 'lucide-react'
 import { api } from '@/lib/api/client'
+import { toast } from 'sonner'
 
 interface Props { onComplete: () => void }
 
@@ -24,12 +25,13 @@ export default function ScoreAllButton({ onComplete }: Props) {
           clearInterval(pollRef.current)
           setState('idle')
           onComplete()
+          toast.success('All targets scored')
         }
       }, 1500)
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : ''
       if (msg?.includes('already running')) return
-      alert('Could not start scoring.')
+      toast.error('Could not start scoring')
     }
   }
 

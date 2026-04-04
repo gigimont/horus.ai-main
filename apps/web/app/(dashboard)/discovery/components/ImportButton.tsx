@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Upload, Loader2, CheckCircle } from 'lucide-react'
 import { api } from '@/lib/api/client'
+import { toast } from 'sonner'
 
 interface Props { onImported: () => void }
 
@@ -17,10 +18,11 @@ export default function ImportButton({ onImported }: Props) {
       const res = await api.targets.bulkImport(file)
       setCount(res.inserted)
       setState('done')
+      toast.success(`${res.inserted} targets imported`)
       setTimeout(() => { setState('idle'); onImported() }, 2000)
     } catch {
       setState('idle')
-      alert('Import failed. Check your CSV format.')
+      toast.error('Import failed. Check your CSV format.')
     }
   }
 

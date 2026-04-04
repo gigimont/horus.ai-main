@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Plus, Check, Loader2 } from 'lucide-react'
 import { api } from '@/lib/api/client'
+import { toast } from 'sonner'
 
 interface Props { targetId: string }
 
@@ -14,13 +15,14 @@ export default function AddToPipelineButton({ targetId }: Props) {
     try {
       await api.targets.addToPipeline(targetId)
       setState('done')
+      toast.success('Added to watchlist')
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : ''
       if (msg.includes('409') || msg.includes('already')) {
         setState('exists')
       } else {
         setState('idle')
-        alert('Failed to add to pipeline.')
+        toast.error('Failed to add to pipeline')
       }
     }
   }

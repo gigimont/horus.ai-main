@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import { useState } from 'react'
 import { Target } from '@/lib/api/client'
 import ScoreBadge from '@/components/shared/ScoreBadge'
 import { Button } from '@/components/ui/button'
@@ -17,18 +18,14 @@ function fmt(n: number | null | undefined, prefix = '') {
 }
 
 export default function TargetTable({ targets, onDelete }: Props) {
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
   if (targets.length === 0) {
     return (
       <div className="text-center py-16 text-muted-foreground text-sm">
         No targets found. Import a CSV or adjust your filters.
       </div>
     )
-  }
-
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Delete ${name}?`)) return
-    await api.targets.delete(id)
-    onDelete(id)
   }
 
   return (
@@ -84,13 +81,30 @@ export default function TargetTable({ targets, onDelete }: Props) {
                   <ScoreBadge score={score} />
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Button
-                    variant="ghost" size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDelete(t.id, t.name)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  {confirmDeleteId === t.id ? (
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="destructive" size="sm" className="h-7 text-xs px-2"
+                        onClick={() => { api.targets.delete(t.id); onDelete(t.id); setConfirmDeleteId(null) }}
+                      >
+                        Confirm
+                      </Button>
+                      <Button
+                        variant="ghost" size="sm" className="h-7 text-xs px-2"
+                        onClick={() => setConfirmDeleteId(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="ghost" size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      onClick={() => setConfirmDeleteId(t.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </td>
               </tr>
             )
