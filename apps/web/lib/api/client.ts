@@ -25,6 +25,13 @@ export const api = {
       apiFetch<void>(`/targets/${id}`, { method: 'DELETE' }),
     score: (id: string) =>
       apiFetch<{ message: string }>(`/targets/${id}/score`, { method: 'POST' }),
+    similar: (id: string) =>
+      apiFetch<{ data: Target[] }>(`/targets/${id}/similar`),
+    addToPipeline: (targetId: string) =>
+      apiFetch<{ message: string }>('/pipeline/', {
+        method: 'POST',
+        body: JSON.stringify({ target_id: targetId, stage: 'watchlist' }),
+      }),
     bulkImport: (file: File) => {
       const form = new FormData()
       form.append('file', file)
@@ -78,4 +85,36 @@ export interface Target {
   created_at: string
   updated_at: string
   target_scores: TargetScore[]
+}
+
+export async function streamChat(
+  messages: { role: string; content: string }[],
+  context: Record<string, unknown>,
+  onChunk: (text: string) => void,
+  onDone: () => void
+) {
+  const res = await fetch(`${API_URL}/chat/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages, context }),
+  })
+
+  const reader = res.body!.getReader()
+  const decoder = new TextDecoder()
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    const chunk = decoder.decode(value)
+    const lines = chunk.split('\n').filter(l => l.startsWith('data: '))
+    for (const line of lines) {
+      const data = line.replace('data: ', '')
+      if (data === '[DONE]') { onDone(); return }
+      try {
+        const parsed = JSON.parse(data)
+        if (parsed.text) onChunk(parsed.text)
+      } catch {}
+    }
+  }
+  onDone()
 }

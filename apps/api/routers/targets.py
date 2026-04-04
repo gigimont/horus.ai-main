@@ -155,3 +155,42 @@ async def score_target_route(
         raise HTTPException(status_code=404, detail="Target not found")
     background_tasks.add_task(score_single_target, target_id, tenant_id)
     return {"message": "Scoring started", "target_id": target_id}
+
+
+@router.get("/{target_id}/similar")
+async def similar_targets(
+    target_id: str,
+    limit: int = Query(4, le=10),
+    tenant_id: str = Depends(get_tenant_id),
+    db: Client = Depends(get_db)
+):
+    """Return targets with the most similar score profile using euclidean distance."""
+    ref = db.table("target_scores").select("*").eq("target_id", target_id).execute()
+    if not ref.data:
+        return {"data": []}
+
+    r = ref.data[0]
+
+    all_scores = db.table("target_scores").select(
+        "target_id, overall_score, transition_score, value_score, market_score, financial_score"
+    ).eq("tenant_id", tenant_id).neq("target_id", target_id).execute()
+
+    if not all_scores.data:
+        return {"data": []}
+
+    def distance(s):
+        return sum([
+            (s.get("transition_score", 0) - (r.get("transition_score") or 0)) ** 2,
+            (s.get("value_score", 0)      - (r.get("value_score") or 0)) ** 2,
+            (s.get("market_score", 0)     - (r.get("market_score") or 0)) ** 2,
+            (s.get("financial_score", 0)  - (r.get("financial_score") or 0)) ** 2,
+        ]) ** 0.5
+
+    ranked = sorted(all_scores.data, key=distance)[:limit]
+    similar_ids = [s["target_id"] for s in ranked]
+
+    result = db.table("targets").select(
+        "*, target_scores(overall_score, transition_score, value_score, market_score, financial_score)"
+    ).in_("id", similar_ids).eq("tenant_id", tenant_id).is_("deleted_at", "null").execute()
+
+    return {"data": result.data or []}
