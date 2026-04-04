@@ -28,7 +28,7 @@ export default function SignupPage() {
               <Label htmlFor="password">Password</Label>
               <Input id="password" name="password" type="password" minLength={8} required />
             </div>
-            <Button formAction={signup} className="w-full">Create account</Button>
+            <Button type="submit" formAction={signup} className="w-full">Create account</Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
             Already have an account?{' '}

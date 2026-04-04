@@ -24,7 +24,7 @@ export default function LoginPage() {
               <Label htmlFor="password">Password</Label>
               <Input id="password" name="password" type="password" required />
             </div>
-            <Button formAction={login} className="w-full">Sign in</Button>
+            <Button type="submit" formAction={login} className="w-full">Sign in</Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
             No account?{' '}

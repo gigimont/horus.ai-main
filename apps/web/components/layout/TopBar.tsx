@@ -7,7 +7,7 @@ export default function TopBar() {
     <header className="flex items-center justify-between px-6 h-14 border-b bg-card shrink-0">
       <div />
       <form>
-        <Button formAction={logout} variant="ghost" size="sm" className="gap-2 text-muted-foreground">
+        <Button type="submit" formAction={logout} variant="ghost" size="sm" className="gap-2 text-muted-foreground">
           <LogOut className="h-4 w-4" />
           Sign out
         </Button>
