@@ -1,6 +1,8 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { LayoutDashboard, Search, Kanban, Settings, Network } from 'lucide-react'
 
@@ -14,6 +16,24 @@ const nav = [
 
 export default function Sidebar() {
   const path = usePathname()
+  const [tenantName, setTenantName] = useState('My Fund')
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return
+      const { data: userData } = await supabase
+        .from('users')
+        .select('tenants(name)')
+        .eq('id', data.user.id)
+        .single()
+      if (userData?.tenants) {
+        const t = userData.tenants as unknown as { name: string }
+        setTenantName(t.name)
+      }
+    })
+  }, [])
+
   return (
     <aside className="flex flex-col w-[220px] border-r bg-card shrink-0">
       <div className="flex items-center gap-2 px-4 h-14 border-b">
@@ -38,7 +58,7 @@ export default function Sidebar() {
         ))}
       </nav>
       <div className="p-3 border-t">
-        <p className="text-xs text-muted-foreground px-3">Demo Fund</p>
+        <p className="text-xs font-medium px-3 truncate">{tenantName}</p>
         <p className="text-xs text-muted-foreground px-3">Trial plan</p>
       </div>
     </aside>

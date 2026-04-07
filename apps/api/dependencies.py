@@ -1,13 +1,41 @@
 from fastapi import Depends, HTTPException, Header
 from supabase import Client
 from db.supabase import supabase
+from config import settings
 from typing import Optional
+import jwt
 
 async def get_db() -> Client:
     return supabase
 
 async def get_tenant_id(authorization: Optional[str] = Header(None)) -> str:
-    return "00000000-0000-0000-0000-000000000001"  # Dev shortcut — replaced in Session 9
+    DEMO_TENANT = "00000000-0000-0000-0000-000000000001"
+
+    if not authorization:
+        if settings.environment == "development":
+            return DEMO_TENANT
+        raise HTTPException(status_code=401, detail="Authorization header required")
+
+    try:
+        token = authorization.replace("Bearer ", "")
+        payload = jwt.decode(
+            token,
+            settings.supabase_jwt_secret,
+            algorithms=["HS256"],
+            options={"verify_aud": False}
+        )
+        tenant_id = payload.get("tenant_id")
+        if not tenant_id:
+            if settings.environment == "development":
+                return DEMO_TENANT
+            raise HTTPException(status_code=401, detail="No tenant_id in token")
+        return tenant_id
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except Exception:
+        if settings.environment == "development":
+            return DEMO_TENANT
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 async def get_current_tenant(
     tenant_id: str = Depends(get_tenant_id),
