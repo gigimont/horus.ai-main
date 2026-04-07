@@ -66,6 +66,13 @@ export const api = {
     remove: (id: string) =>
       apiFetch<void>(`/pipeline/${id}`, { method: 'DELETE' }),
   },
+  exports: {
+    csv: (params?: Record<string, string>) => {
+      const qs = params ? '?' + new URLSearchParams(params).toString() : ''
+      return `${API_URL}/exports/targets.csv${qs}`
+    },
+    report: (targetId: string) => `${API_URL}/exports/report/${targetId}`,
+  },
   clusters: {
     list: () => apiFetch<{ data: Cluster[] }>('/clusters/'),
     refresh: () => apiFetch<{ message: string }>('/clusters/refresh', { method: 'POST' }),

@@ -1,12 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import targets, scoring, clusters, chat, exports, pipeline, billing
+from config import settings
 
 app = FastAPI(title="SearchFund AI API", version="1.0.0")
 
+ALLOWED_ORIGINS = ["http://localhost:3000"]
+if settings.environment == "production":
+    ALLOWED_ORIGINS = ["https://searchfund-web.vercel.app"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

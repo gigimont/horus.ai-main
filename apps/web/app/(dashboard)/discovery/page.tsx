@@ -7,7 +7,7 @@ import ImportButton from './components/ImportButton'
 import ScoreAllButton from './components/ScoreAllButton'
 import MapView from './components/MapView'
 import { Skeleton } from '@/components/ui/skeleton'
-import { List, Map } from 'lucide-react'
+import { List, Map, Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const EMPTY_FILTERS: Filters = { search: '', country: '', industry_code: '', score_min: '', score_max: '' }
@@ -62,6 +62,22 @@ export default function DiscoveryPage() {
               <Map className="h-4 w-4" />
             </button>
           </div>
+          <a
+            href={api.exports.csv(
+              Object.fromEntries(
+                Object.entries({
+                  country: filters.country,
+                  industry_code: filters.industry_code,
+                  score_min: filters.score_min,
+                }).filter(([, v]) => v)
+              )
+            )}
+            download
+            className="inline-flex items-center gap-2 h-8 px-3 rounded-md border border-input bg-background text-sm hover:bg-accent transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </a>
           <ImportButton onImported={load} />
           <ScoreAllButton onComplete={load} />
         </div>

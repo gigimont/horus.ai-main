@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ExternalLink, MapPin, Users, TrendingUp, Calendar } from 'lucide-react'
+import { ArrowLeft, ExternalLink, MapPin, Users, TrendingUp, Calendar, FileText } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -82,7 +82,17 @@ export default async function TargetDetailPage({ params }: { params: Promise<{ i
             )}
           </div>
         </div>
-        <AddToPipelineButton targetId={id} />
+        <div className="flex items-center gap-2">
+          <a
+            href={`${API}/exports/report/${id}`}
+            download
+            className="inline-flex items-center gap-2 h-8 px-3 rounded-md border border-input bg-background text-sm hover:bg-accent transition-colors"
+          >
+            <FileText className="h-4 w-4" />
+            Export PDF
+          </a>
+          <AddToPipelineButton targetId={id} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
