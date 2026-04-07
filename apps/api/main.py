@@ -7,7 +7,7 @@ app = FastAPI(title="SearchFund AI API", version="1.0.0")
 
 ALLOWED_ORIGINS = ["http://localhost:3000"]
 if settings.environment == "production":
-    ALLOWED_ORIGINS = ["https://searchfund-web.vercel.app"]
+    ALLOWED_ORIGINS = ["https://horus-ai-main.vercel.app"]
 
 app.add_middleware(
     CORSMiddleware,
