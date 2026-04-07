@@ -23,15 +23,17 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login') ||
-                      request.nextUrl.pathname.startsWith('/signup') ||
-                      request.nextUrl.pathname.startsWith('/onboarding')
+  const isLoginOrSignup = request.nextUrl.pathname.startsWith('/login') ||
+                          request.nextUrl.pathname.startsWith('/signup')
+  const isOnboarding = request.nextUrl.pathname.startsWith('/onboarding')
+  const isAuthRoute = isLoginOrSignup || isOnboarding
 
   if (!user && !isAuthRoute) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (user && isAuthRoute) {
+  // Only redirect away from login/signup if already authenticated, not onboarding
+  if (user && isLoginOrSignup) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
