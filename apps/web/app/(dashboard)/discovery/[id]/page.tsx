@@ -54,30 +54,30 @@ export default async function TargetDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div className="space-y-6 max-w-6xl">
-      <Link href="/discovery" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Back to discovery
+      <Link href="/discovery" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors duration-150 cursor-pointer">
+        <ArrowLeft className="h-3.5 w-3.5" /> Back to discovery
       </Link>
 
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold">{target.name}</h1>
+            <h1 className="text-xl font-semibold tracking-tight">{target.name}</h1>
             <ScoreBadge score={score?.overall_score} size="md" />
           </div>
-          <div className="flex items-center gap-4 mt-1.5 text-sm text-muted-foreground">
+          <div className="flex items-center gap-4 mt-1.5 text-xs text-muted-foreground">
             {(target.city || target.country) && (
               <span className="flex items-center gap-1">
-                <MapPin className="h-3.5 w-3.5" />
+                <MapPin className="h-3 w-3" />
                 {[target.city, target.region, target.country].filter(Boolean).join(', ')}
               </span>
             )}
             {target.industry_label && (
-              <Badge variant="secondary" className="font-normal">{target.industry_label}</Badge>
+              <Badge variant="secondary" className="font-normal text-xs">{target.industry_label}</Badge>
             )}
             {target.website && (
               <a href={target.website} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1 hover:text-foreground">
-                <ExternalLink className="h-3.5 w-3.5" /> Website
+                className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer">
+                <ExternalLink className="h-3 w-3" /> Website
               </a>
             )}
           </div>
@@ -86,9 +86,9 @@ export default async function TargetDetailPage({ params }: { params: Promise<{ i
           <a
             href={`${API}/exports/report/${id}`}
             download
-            className="inline-flex items-center gap-2 h-8 px-3 rounded-md border border-input bg-background text-sm hover:bg-accent transition-colors"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-input bg-white text-xs font-medium hover:bg-muted transition-colors duration-150 cursor-pointer"
           >
-            <FileText className="h-4 w-4" />
+            <FileText className="h-3.5 w-3.5" />
             Export PDF
           </a>
           <AddToPipelineButton targetId={id} />

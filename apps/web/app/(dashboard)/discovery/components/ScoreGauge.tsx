@@ -14,14 +14,14 @@ export default function ScoreGauge({ label, score, description }: Props) {
                  '#ef4444'
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-sm">
-        <span className="font-medium">{label}</span>
-        <span className="tabular-nums font-semibold" style={{ color }}>
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium">{label}</span>
+        <span className="tabular-nums text-sm font-semibold" style={{ color }}>
           {score != null ? val.toFixed(1) : '—'}
         </span>
       </div>
-      <div className="h-2 rounded-full bg-muted overflow-hidden">
+      <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${pct}%`, backgroundColor: color }}

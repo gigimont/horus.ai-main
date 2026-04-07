@@ -35,21 +35,21 @@ export default function Sidebar() {
   }, [])
 
   return (
-    <aside className="flex flex-col w-[220px] border-r bg-card shrink-0">
-      <div className="flex items-center gap-2 px-4 h-14 border-b">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold text-sm">S</div>
-        <span className="font-semibold text-sm">SearchFund AI</span>
+    <aside className="flex flex-col w-[220px] shrink-0 bg-[#0F172A] border-r border-[#1E293B]">
+      <div className="flex items-center gap-2.5 px-4 h-14 border-b border-[#1E293B]">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500 text-white font-bold text-sm">H</div>
+        <span className="font-semibold text-sm text-white tracking-tight">Horus AI</span>
       </div>
-      <nav className="flex-1 p-3 space-y-1">
+      <nav className="flex-1 p-2.5 space-y-0.5">
         {nav.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}
             className={cn(
-              'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+              'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors duration-150 cursor-pointer',
               path === href || path.startsWith(href + '/')
-                ? 'bg-primary/10 text-primary font-medium'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                ? 'bg-[#1E293B] text-white font-medium'
+                : 'text-slate-400 hover:bg-[#1E293B]/60 hover:text-slate-200'
             )}
           >
             <Icon className="h-4 w-4 shrink-0" />
@@ -57,9 +57,9 @@ export default function Sidebar() {
           </Link>
         ))}
       </nav>
-      <div className="p-3 border-t">
-        <p className="text-xs font-medium px-3 truncate">{tenantName}</p>
-        <p className="text-xs text-muted-foreground px-3">Trial plan</p>
+      <div className="p-3 border-t border-[#1E293B]">
+        <p className="text-xs font-medium px-3 text-slate-300 truncate">{tenantName}</p>
+        <p className="text-xs text-slate-500 px-3 mt-0.5">Trial plan</p>
       </div>
     </aside>
   )

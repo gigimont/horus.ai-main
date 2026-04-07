@@ -36,31 +36,31 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-1">Your acquisition universe at a glance</p>
+        <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground text-sm mt-0.5">Your acquisition universe at a glance</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map(({ title, value, icon: Icon, desc }) => (
-          <Card key={title}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-              <Icon className="h-4 w-4 text-muted-foreground" />
+          <Card key={title} className="border-border shadow-none">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-5">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{title}</CardTitle>
+              <Icon className="h-3.5 w-3.5 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{value}</div>
+            <CardContent className="px-5 pb-4">
+              <div className="text-2xl font-semibold tabular-nums">{value}</div>
               <p className="text-xs text-muted-foreground mt-1">{desc}</p>
             </CardContent>
           </Card>
         ))}
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Getting started</CardTitle>
+      <Card className="border-border shadow-none">
+        <CardHeader className="pb-2 pt-4 px-5">
+          <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Getting started</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>→ Go to <strong>Discovery</strong> to browse and score your SME targets</p>
+        <CardContent className="text-sm text-muted-foreground space-y-2 px-5 pb-4">
+          <p>→ Go to <strong className="text-foreground font-medium">Discovery</strong> to browse and score your SME targets</p>
           <p>→ Import a CSV to add targets in bulk</p>
-          <p>→ Add targets to your <strong>Pipeline</strong> to track outreach</p>
+          <p>→ Add targets to your <strong className="text-foreground font-medium">Pipeline</strong> to track outreach</p>
         </CardContent>
       </Card>
     </div>

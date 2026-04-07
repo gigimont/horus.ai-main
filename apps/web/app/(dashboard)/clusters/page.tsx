@@ -9,9 +9,9 @@ import { RefreshCw, Loader2, MapPin, Building2 } from 'lucide-react'
 import Link from 'next/link'
 
 const TRANSITION_COLORS: Record<string, string> = {
-  high:   'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-  medium: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-  low:    'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+  high:   'bg-red-50 text-red-700 ring-1 ring-red-200',
+  medium: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+  low:    'bg-slate-100 text-slate-600',
 }
 
 export default function ClustersPage() {
@@ -47,8 +47,8 @@ export default function ClustersPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Clusters</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h1 className="text-xl font-semibold tracking-tight">Clusters</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
             {loading ? 'Loading…' : clusters.length === 0
               ? 'No clusters yet — click Refresh to generate'
               : `${clusters.length} clusters · ${clusters.reduce((s, c) => s + c.member_count, 0)} targets grouped`}

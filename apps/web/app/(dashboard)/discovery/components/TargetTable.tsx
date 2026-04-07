@@ -29,68 +29,68 @@ export default function TargetTable({ targets, onDelete }: Props) {
   }
 
   return (
-    <div className="rounded-lg border overflow-hidden">
+    <div className="rounded-md border bg-white overflow-hidden shadow-none">
       <table className="w-full text-sm">
-        <thead className="bg-muted/50 text-muted-foreground">
+        <thead className="border-b bg-slate-50">
           <tr>
-            <th className="text-left px-4 py-3 font-medium">Company</th>
-            <th className="text-left px-4 py-3 font-medium">Location</th>
-            <th className="text-left px-4 py-3 font-medium">Industry</th>
-            <th className="text-right px-4 py-3 font-medium">Revenue</th>
-            <th className="text-right px-4 py-3 font-medium">Employees</th>
-            <th className="text-right px-4 py-3 font-medium">Owner age</th>
-            <th className="text-center px-4 py-3 font-medium">Score</th>
-            <th className="px-4 py-3" />
+            <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Company</th>
+            <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Location</th>
+            <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Industry</th>
+            <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Revenue</th>
+            <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Employees</th>
+            <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Owner age</th>
+            <th className="text-center px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Score</th>
+            <th className="px-4 py-2.5 w-8" />
           </tr>
         </thead>
-        <tbody className="divide-y">
+        <tbody className="divide-y divide-border">
           {targets.map(t => {
             const score = t.target_scores?.[0]?.overall_score
             return (
-              <tr key={t.id} className="hover:bg-muted/30 transition-colors">
-                <td className="px-4 py-3">
+              <tr key={t.id} className="hover:bg-slate-50/80 transition-colors duration-100">
+                <td className="px-4 py-2.5">
                   <Link
                     href={`/discovery/${t.id}`}
-                    className="font-medium hover:text-primary hover:underline"
+                    className="font-medium text-foreground hover:text-emerald-700 transition-colors duration-150"
                   >
                     {t.name}
                   </Link>
                   {t.website && (
                     <a href={t.website} target="_blank" rel="noopener noreferrer"
-                      className="ml-2 text-muted-foreground hover:text-foreground inline-flex items-center">
+                      className="ml-2 text-muted-foreground hover:text-foreground inline-flex items-center cursor-pointer">
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className="px-4 py-2.5 text-muted-foreground text-xs">
                   {[t.city, t.country].filter(Boolean).join(', ') || '—'}
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className="px-4 py-2.5 text-muted-foreground text-xs">
                   {t.industry_label ?? '—'}
                 </td>
-                <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                <td className="px-4 py-2.5 text-right tabular-nums text-xs text-muted-foreground">
                   {fmt(t.revenue_eur, '€')}
                 </td>
-                <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                <td className="px-4 py-2.5 text-right tabular-nums text-xs text-muted-foreground">
                   {fmt(t.employee_count)}
                 </td>
-                <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                <td className="px-4 py-2.5 text-right tabular-nums text-xs text-muted-foreground">
                   {t.owner_age_estimate ?? '—'}
                 </td>
-                <td className="px-4 py-3 text-center">
+                <td className="px-4 py-2.5 text-center">
                   <ScoreBadge score={score} />
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-2.5 text-right">
                   {confirmDeleteId === t.id ? (
                     <div className="flex items-center justify-end gap-1">
                       <Button
-                        variant="destructive" size="sm" className="h-7 text-xs px-2"
+                        variant="destructive" size="sm" className="h-6 text-xs px-2 cursor-pointer"
                         onClick={() => { api.targets.delete(t.id); onDelete(t.id); setConfirmDeleteId(null) }}
                       >
                         Confirm
                       </Button>
                       <Button
-                        variant="ghost" size="sm" className="h-7 text-xs px-2"
+                        variant="ghost" size="sm" className="h-6 text-xs px-2 cursor-pointer"
                         onClick={() => setConfirmDeleteId(null)}
                       >
                         Cancel
@@ -99,10 +99,10 @@ export default function TargetTable({ targets, onDelete }: Props) {
                   ) : (
                     <Button
                       variant="ghost" size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive cursor-pointer"
                       onClick={() => setConfirmDeleteId(t.id)}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   )}
                 </td>

@@ -9,11 +9,11 @@ import Link from 'next/link'
 import { cn } from '@/lib/utils'
 
 const STAGES = [
-  { id: 'watchlist',  label: 'Watchlist',  color: 'bg-slate-100 dark:bg-slate-800' },
-  { id: 'contacted',  label: 'Contacted',  color: 'bg-blue-50 dark:bg-blue-950' },
-  { id: 'nda',        label: 'NDA signed', color: 'bg-purple-50 dark:bg-purple-950' },
-  { id: 'loi',        label: 'LOI sent',   color: 'bg-amber-50 dark:bg-amber-950' },
-  { id: 'closed',     label: 'Closed',     color: 'bg-emerald-50 dark:bg-emerald-950' },
+  { id: 'watchlist',  label: 'Watchlist',  color: 'bg-slate-50 border-slate-200' },
+  { id: 'contacted',  label: 'Contacted',  color: 'bg-slate-50 border-slate-200' },
+  { id: 'nda',        label: 'NDA signed', color: 'bg-slate-50 border-slate-200' },
+  { id: 'loi',        label: 'LOI sent',   color: 'bg-amber-50 border-amber-200' },
+  { id: 'closed',     label: 'Closed',     color: 'bg-emerald-50 border-emerald-200' },
 ]
 
 export default function PipelinePage() {
@@ -53,8 +53,8 @@ export default function PipelinePage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold">Pipeline</h1>
-        <p className="text-muted-foreground text-sm mt-1">
+        <h1 className="text-xl font-semibold tracking-tight">Pipeline</h1>
+        <p className="text-muted-foreground text-sm mt-0.5">
           {entries.length} {entries.length === 1 ? 'company' : 'companies'} tracked · drag cards to move stages
         </p>
       </div>
@@ -94,16 +94,16 @@ function DroppableColumn({ stage, entries, onRemove }: {
     <div
       ref={setNodeRef}
       className={cn(
-        'rounded-lg border p-3 transition-colors min-h-[400px]',
+        'rounded-md border p-3 transition-colors min-h-[400px]',
         stage.color,
-        isOver && 'ring-2 ring-primary ring-offset-1'
+        isOver && 'ring-2 ring-emerald-400 ring-offset-1'
       )}
     >
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
           {stage.label}
         </span>
-        <span className="text-xs text-muted-foreground">{entries.length}</span>
+        <span className="text-xs font-medium text-muted-foreground bg-white rounded px-1.5 py-0.5 border">{entries.length}</span>
       </div>
       <div className="space-y-2">
         {entries.map(entry => (
@@ -133,8 +133,8 @@ function DraggableCard({ entry, onRemove }: {
       {...listeners}
       {...attributes}
       className={cn(
-        'bg-card rounded-md border p-3 cursor-grab active:cursor-grabbing select-none',
-        isDragging && 'opacity-50 shadow-lg'
+        'bg-white rounded-md border border-border p-3 cursor-grab active:cursor-grabbing select-none shadow-none hover:shadow-sm transition-shadow duration-150',
+        isDragging && 'opacity-50 shadow-md'
       )}
     >
       <div className="flex items-start justify-between gap-1">

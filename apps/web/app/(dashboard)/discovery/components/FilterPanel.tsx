@@ -27,60 +27,49 @@ export default function FilterPanel({ filters, onChange, onReset }: Props) {
   const hasActive = Object.values(filters).some(v => v !== '')
 
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <div className="space-y-1">
-        <Label className="text-xs">Search</Label>
+    <div className="flex flex-wrap items-center gap-2 p-3 rounded-md border bg-white">
+      <Input
+        className="h-7 w-40 text-xs bg-white"
+        placeholder="Search company…"
+        value={filters.search}
+        onChange={set('search')}
+      />
+      <select
+        className="h-7 rounded-md border border-input bg-white px-2 text-xs text-foreground cursor-pointer"
+        value={filters.country}
+        onChange={set('country')}
+      >
+        <option value="">All countries</option>
+        {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+      </select>
+      <select
+        className="h-7 rounded-md border border-input bg-white px-2 text-xs text-foreground cursor-pointer"
+        value={filters.industry_code}
+        onChange={set('industry_code')}
+      >
+        <option value="">All industries</option>
+        {INDUSTRIES.map(i => <option key={i.code} value={i.code}>{i.label}</option>)}
+      </select>
+      <div className="flex items-center gap-1.5">
+        <Label className="text-xs text-muted-foreground shrink-0">Score</Label>
         <Input
-          className="h-8 w-44 text-sm"
-          placeholder="Company name..."
-          value={filters.search}
-          onChange={set('search')}
-        />
-      </div>
-      <div className="space-y-1">
-        <Label className="text-xs">Country</Label>
-        <select
-          className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-          value={filters.country}
-          onChange={set('country')}
-        >
-          <option value="">All countries</option>
-          {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-      </div>
-      <div className="space-y-1">
-        <Label className="text-xs">Industry</Label>
-        <select
-          className="h-8 rounded-md border border-input bg-background px-2 text-sm"
-          value={filters.industry_code}
-          onChange={set('industry_code')}
-        >
-          <option value="">All industries</option>
-          {INDUSTRIES.map(i => <option key={i.code} value={i.code}>{i.label}</option>)}
-        </select>
-      </div>
-      <div className="space-y-1">
-        <Label className="text-xs">Score min</Label>
-        <Input
-          className="h-8 w-20 text-sm"
+          className="h-7 w-14 text-xs bg-white"
           type="number" min="0" max="10" step="0.5"
-          placeholder="0"
+          placeholder="min"
           value={filters.score_min}
           onChange={set('score_min')}
         />
-      </div>
-      <div className="space-y-1">
-        <Label className="text-xs">Score max</Label>
+        <span className="text-xs text-muted-foreground">–</span>
         <Input
-          className="h-8 w-20 text-sm"
+          className="h-7 w-14 text-xs bg-white"
           type="number" min="0" max="10" step="0.5"
-          placeholder="10"
+          placeholder="max"
           value={filters.score_max}
           onChange={set('score_max')}
         />
       </div>
       {hasActive && (
-        <Button variant="ghost" size="sm" className="h-8 gap-1 text-muted-foreground" onClick={onReset}>
+        <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs text-muted-foreground cursor-pointer" onClick={onReset}>
           <X className="h-3 w-3" /> Reset
         </Button>
       )}

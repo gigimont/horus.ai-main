@@ -39,27 +39,27 @@ export default function DiscoveryPage() {
   const handleDelete = (id: string) => setTargets(prev => prev.filter(t => t.id !== id))
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Discovery</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h1 className="text-xl font-semibold tracking-tight">Discovery</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
             {loading ? 'Loading…' : `${targets.length} targets`}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 border rounded-md p-0.5">
+          <div className="flex items-center gap-0.5 border rounded-md p-0.5 bg-white">
             <button
               onClick={() => setView('table')}
-              className={cn('p-1.5 rounded', view === 'table' ? 'bg-muted' : 'hover:bg-muted/50')}
+              className={cn('p-1.5 rounded cursor-pointer transition-colors duration-150', view === 'table' ? 'bg-muted' : 'hover:bg-muted/50')}
             >
-              <List className="h-4 w-4" />
+              <List className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => setView('map')}
-              className={cn('p-1.5 rounded', view === 'map' ? 'bg-muted' : 'hover:bg-muted/50')}
+              className={cn('p-1.5 rounded cursor-pointer transition-colors duration-150', view === 'map' ? 'bg-muted' : 'hover:bg-muted/50')}
             >
-              <Map className="h-4 w-4" />
+              <Map className="h-3.5 w-3.5" />
             </button>
           </div>
           <a
@@ -73,9 +73,9 @@ export default function DiscoveryPage() {
               )
             )}
             download
-            className="inline-flex items-center gap-2 h-8 px-3 rounded-md border border-input bg-background text-sm hover:bg-accent transition-colors"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-input bg-white text-xs font-medium hover:bg-muted transition-colors duration-150 cursor-pointer"
           >
-            <Download className="h-4 w-4" />
+            <Download className="h-3.5 w-3.5" />
             Export CSV
           </a>
           <ImportButton onImported={load} />
@@ -88,7 +88,7 @@ export default function DiscoveryPage() {
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full rounded-lg" />
+            <Skeleton key={i} className="h-11 w-full rounded-md" />
           ))}
         </div>
       ) : view === 'map' ? (
