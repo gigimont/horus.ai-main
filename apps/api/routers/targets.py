@@ -155,12 +155,11 @@ async def bulk_import(
 
 @router.post("/geocode/batch")
 async def geocode_batch(
-    background_tasks: BackgroundTasks,
     tenant_id: str = Depends(get_tenant_id),
     db: Client = Depends(get_db)
 ):
-    background_tasks.add_task(geocode_all_ungeocode, tenant_id, db)
-    return {"message": "Batch geocoding started"}
+    result = await geocode_all_ungeocode(tenant_id, db)
+    return result
 
 
 @router.post("/{target_id}/geocode")

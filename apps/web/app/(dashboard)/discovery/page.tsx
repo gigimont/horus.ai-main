@@ -43,8 +43,12 @@ export default function DiscoveryPage() {
     const toastId = toast.loading('Geocoding targets…')
     try {
       const res = await api.targets.geocodeBatch()
-      toast.success(`Geocoded ${res.success} of ${res.total} targets`, { id: toastId })
-      load()
+      if (res.total === 0) {
+        toast.success('All targets already have coordinates', { id: toastId })
+      } else {
+        toast.success(`Geocoded ${res.success} of ${res.total} targets`, { id: toastId })
+        load()
+      }
     } catch {
       toast.error('Geocoding failed', { id: toastId })
     }
