@@ -123,7 +123,21 @@ async def bulk_import(
     db: Client = Depends(get_db)
 ):
     contents = await file.read()
-    reader = csv.DictReader(io.StringIO(contents.decode("utf-8")))
+    # utf-8-sig strips BOM if present, falls back cleanly for plain utf-8
+    try:
+        text = contents.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        text = contents.decode("latin-1")
+    reader = csv.DictReader(io.StringIO(text))
+
+    def safe_int(row: dict, key: str) -> int | None:
+        val = row.get(key, "").strip().replace(",", "").replace(" ", "")
+        if not val:
+            return None
+        try:
+            return int(float(val))
+        except (ValueError, TypeError):
+            return None
 
     rows = []
     for row in reader:
@@ -135,10 +149,10 @@ async def bulk_import(
             "city": row.get("city", "").strip() or None,
             "industry_label": row.get("industry_label", "").strip() or None,
             "industry_code": row.get("industry_code", "").strip() or None,
-            "employee_count": int(row["employee_count"]) if row.get("employee_count", "").strip() else None,
-            "revenue_eur": int(row["revenue_eur"]) if row.get("revenue_eur", "").strip() else None,
-            "founded_year": int(row["founded_year"]) if row.get("founded_year", "").strip() else None,
-            "owner_age_estimate": int(row["owner_age_estimate"]) if row.get("owner_age_estimate", "").strip() else None,
+            "employee_count": safe_int(row, "employee_count"),
+            "revenue_eur": safe_int(row, "revenue_eur"),
+            "founded_year": safe_int(row, "founded_year"),
+            "owner_age_estimate": safe_int(row, "owner_age_estimate"),
             "website": row.get("website", "").strip() or None,
             "linkedin_url": row.get("linkedin_url", "").strip() or None,
         }
