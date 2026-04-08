@@ -23,14 +23,18 @@ export default function Sidebar() {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) return
-      const { data: userData } = await supabase
-        .from('users')
-        .select('tenants(name)')
-        .eq('id', data.user.id)
-        .single()
-      if (userData?.tenants) {
-        const t = userData.tenants as unknown as { name: string }
-        setTenantName(t.name)
+      try {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('tenants(name)')
+          .eq('id', data.user.id)
+          .single()
+        if (userData?.tenants) {
+          const t = userData.tenants as unknown as { name: string }
+          setTenantName(t.name)
+        }
+      } catch {
+        // tenant name is cosmetic — silently fall back to default
       }
     })
   }, [])
