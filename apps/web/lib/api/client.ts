@@ -37,6 +37,10 @@ export const api = {
       apiFetch<{ message: string }>(`/targets/${id}/score`, { method: 'POST' }),
     similar: (id: string) =>
       apiFetch<{ data: Target[] }>(`/targets/${id}/similar`),
+    geocode: (id: string) =>
+      apiFetch<{ message: string; target_id: string }>(`/targets/${id}/geocode`, { method: 'POST' }),
+    geocodeBatch: () =>
+      apiFetch<{ total: number; success: number; failed: number }>('/targets/geocode/batch', { method: 'POST' }),
     addToPipeline: (targetId: string) =>
       apiFetch<{ message: string }>('/pipeline/', {
         method: 'POST',
@@ -114,6 +118,9 @@ export interface Target {
   owner_age_estimate: number | null
   website: string | null
   linkedin_url: string | null
+  lat: number | null
+  lng: number | null
+  geocoded_at: string | null
   created_at: string
   updated_at: string
   target_scores: TargetScore[]

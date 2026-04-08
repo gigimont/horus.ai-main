@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
     environment: str = "development"
+    mapbox_token: str = ""
 
     class Config:
         env_file = ".env"

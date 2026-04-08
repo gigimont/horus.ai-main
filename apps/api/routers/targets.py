@@ -5,6 +5,7 @@ from dependencies import get_db, get_tenant_id
 from models.target import TargetCreate, TargetUpdate
 from supabase import Client
 from services.scoring_service import score_single_target
+from services.geocoding_service import geocode_target, geocode_all_ungeocode
 
 router = APIRouter()
 
@@ -60,6 +61,7 @@ async def list_targets(
 @router.post("/", status_code=201)
 async def create_target(
     payload: TargetCreate,
+    background_tasks: BackgroundTasks,
     tenant_id: str = Depends(get_tenant_id),
     db: Client = Depends(get_db)
 ):
@@ -68,7 +70,9 @@ async def create_target(
     result = db.table("targets").insert(data).execute()
     if not result.data:
         raise HTTPException(status_code=400, detail="Failed to create target")
-    return result.data[0]
+    created = result.data[0]
+    background_tasks.add_task(geocode_target, created, db)
+    return created
 
 
 @router.get("/{target_id}")
@@ -114,6 +118,7 @@ async def delete_target(
 @router.post("/bulk", status_code=201)
 async def bulk_import(
     file: UploadFile = File(...),
+    background_tasks: BackgroundTasks,
     tenant_id: str = Depends(get_tenant_id),
     db: Client = Depends(get_db)
 ):
@@ -144,7 +149,35 @@ async def bulk_import(
         raise HTTPException(status_code=400, detail="No valid rows found in CSV")
 
     result = db.table("targets").insert(rows).execute()
+    background_tasks.add_task(geocode_all_ungeocode, tenant_id, db)
     return {"inserted": len(result.data), "targets": result.data}
+
+
+@router.post("/geocode/batch")
+async def geocode_batch(
+    background_tasks: BackgroundTasks,
+    tenant_id: str = Depends(get_tenant_id),
+    db: Client = Depends(get_db)
+):
+    background_tasks.add_task(geocode_all_ungeocode, tenant_id, db)
+    return {"message": "Batch geocoding started"}
+
+
+@router.post("/{target_id}/geocode")
+async def geocode_single(
+    target_id: str,
+    tenant_id: str = Depends(get_tenant_id),
+    db: Client = Depends(get_db)
+):
+    result = db.table("targets").select(
+        "id, name, city, region, country"
+    ).eq("id", target_id).eq("tenant_id", tenant_id).single().execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Target not found")
+    ok = await geocode_target(result.data, db)
+    if not ok:
+        raise HTTPException(status_code=422, detail="Could not geocode target — no recognisable location")
+    return {"message": "Geocoded", "target_id": target_id}
 
 
 @router.post("/{target_id}/score")

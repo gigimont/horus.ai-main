@@ -15,32 +15,14 @@ const SCORE_COLOR = (score: number | undefined) => {
   return '#ef4444'
 }
 
-const CITY_COORDS: Record<string, [number, number]> = {
-  'Brescia':   [10.2118, 45.5416],
-  'Munich':    [11.5820, 48.1351],
-  'Barcelona': [2.1734, 41.3851],
-  'Lyon':      [4.8357, 45.7640],
-  'Katowice':  [19.0238, 50.2649],
-  'Berlin':    [13.4050, 52.5200],
-  'Turin':     [7.6869, 45.0703],
-  'Paris':     [2.3522, 48.8566],
-  'Madrid':    [3.7038, 40.4168],
-  'Rome':      [12.4964, 41.9028],
-  'Vienna':    [16.3738, 48.2082],
-  'Warsaw':    [21.0122, 52.2297],
-  'Amsterdam': [4.9041, 52.3676],
-  'Brussels':  [4.3517, 50.8503],
-  'Zurich':    [8.5417, 47.3769],
-  'Stuttgart': [9.1829, 48.7758],
-  'Hamburg':   [9.9937, 53.5511],
-  'Frankfurt': [8.6821, 50.1109],
-}
-
 export default function MapView({ targets }: Props) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<unknown>(null)
   const [selected, setSelected] = useState<Target | null>(null)
   const router = useRouter()
+
+  const mappable = targets.filter(t => t.lat != null && t.lng != null)
+  const noCoords = targets.length - mappable.length
 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return
@@ -58,16 +40,16 @@ export default function MapView({ targets }: Props) {
 
       map.on('load', () => {
         mapRef.current = map
-        targets.forEach(target => {
-          const coords = target.city ? CITY_COORDS[target.city] : null
-          if (!coords) return
+        mappable.forEach(target => {
           const score = target.target_scores?.[0]?.overall_score
           const color = SCORE_COLOR(score)
           const el = document.createElement('div')
           el.style.cssText = `width:28px;height:28px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.25);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;`
           el.textContent = score ? score.toFixed(1) : '?'
           el.onclick = () => setSelected(target)
-          new mapboxgl.Marker({ element: el }).setLngLat(coords).addTo(map)
+          new mapboxgl.Marker({ element: el })
+            .setLngLat([target.lng!, target.lat!])
+            .addTo(map)
         })
       })
     })
@@ -78,9 +60,7 @@ export default function MapView({ targets }: Props) {
         mapRef.current = null
       }
     }
-  }, [targets])
-
-  const noCoords = targets.filter(t => !t.city || !CITY_COORDS[t.city]).length
+  }, [mappable])
 
   return (
     <div className="relative rounded-lg overflow-hidden border" style={{ height: 480 }}>
@@ -94,7 +74,7 @@ export default function MapView({ targets }: Props) {
 
       {noCoords > 0 && (
         <div className="absolute bottom-3 left-3 bg-card/90 backdrop-blur-sm rounded-md px-3 py-1.5 text-xs text-muted-foreground border">
-          {noCoords} target{noCoords > 1 ? 's' : ''} not shown — no coordinates found
+          {noCoords} target{noCoords > 1 ? 's' : ''} not shown — coordinates pending
         </div>
       )}
 

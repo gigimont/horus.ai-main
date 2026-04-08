@@ -7,8 +7,9 @@ import ImportButton from './components/ImportButton'
 import ScoreAllButton from './components/ScoreAllButton'
 import MapView from './components/MapView'
 import { Skeleton } from '@/components/ui/skeleton'
-import { List, Map, Download } from 'lucide-react'
+import { List, Map, Download, MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 const EMPTY_FILTERS: Filters = { search: '', country: '', industry_code: '', score_min: '', score_max: '' }
 
@@ -37,6 +38,17 @@ export default function DiscoveryPage() {
   useEffect(() => { load() }, [load])
 
   const handleDelete = (id: string) => setTargets(prev => prev.filter(t => t.id !== id))
+
+  const handleGeocode = async () => {
+    const toastId = toast.loading('Geocoding targets…')
+    try {
+      const res = await api.targets.geocodeBatch()
+      toast.success(`Geocoded ${res.success} of ${res.total} targets`, { id: toastId })
+      load()
+    } catch {
+      toast.error('Geocoding failed', { id: toastId })
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -79,6 +91,13 @@ export default function DiscoveryPage() {
             Export CSV
           </a>
           <ImportButton onImported={load} />
+          <button
+            onClick={handleGeocode}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-input bg-white text-xs font-medium hover:bg-muted transition-colors duration-150 cursor-pointer"
+          >
+            <MapPin className="h-3.5 w-3.5" />
+            Geocode
+          </button>
           <ScoreAllButton onComplete={load} />
         </div>
       </div>
