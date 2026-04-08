@@ -4,6 +4,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const supabase = createClient()
+  // getUser() validates the token against Supabase and triggers a silent
+  // refresh if the access token is expired — must happen before getSession()
+  await supabase.auth.getUser()
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token
 
