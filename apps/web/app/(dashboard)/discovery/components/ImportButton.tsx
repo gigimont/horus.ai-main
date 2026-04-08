@@ -20,9 +20,9 @@ export default function ImportButton({ onImported }: Props) {
       setState('done')
       toast.success(`${res.inserted} targets imported`)
       setTimeout(() => { setState('idle'); onImported() }, 2000)
-    } catch {
+    } catch (err) {
       setState('idle')
-      toast.error('Import failed. Check your CSV format.')
+      toast.error(`Import failed: ${err instanceof Error ? err.message : 'unknown error'}`)
     }
   }
 
