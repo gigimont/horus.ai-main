@@ -117,8 +117,8 @@ async def delete_target(
 
 @router.post("/bulk", status_code=201)
 async def bulk_import(
-    file: UploadFile = File(...),
     background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
     tenant_id: str = Depends(get_tenant_id),
     db: Client = Depends(get_db)
 ):
