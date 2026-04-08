@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
+import LogoMark from '@/components/shared/LogoMark'
 
 export default function OnboardingPage() {
   const [fundName, setFundName] = useState('')
@@ -25,9 +26,9 @@ export default function OnboardingPage() {
     <div className="min-h-screen flex items-center justify-center bg-muted/30">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-lg">S</div>
+          <div className="mx-auto mb-2"><LogoMark size={36} context="light" /></div>
           <CardTitle className="text-xl">Name your fund</CardTitle>
-          <CardDescription>This will be your workspace name on SearchFund AI</CardDescription>
+          <CardDescription>This will be your workspace name on Horus AI</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">

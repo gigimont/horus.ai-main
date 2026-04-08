@@ -15,8 +15,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Horus AI",
-  description: "Financial intelligence for Search Fund operators",
+  title: {
+    default: 'Horus AI',
+    template: '%s · Horus AI',
+  },
+  description: 'Search intelligence for Search Fund operators. AI-powered SME acquisition target discovery.',
+  keywords: ['search fund', 'M&A', 'SME acquisition', 'AI', 'deal sourcing'],
 };
 
 export default function RootLayout({

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
+import LogoMark from '@/components/shared/LogoMark'
 
 export default function LoginPage() {
   return (
@@ -10,8 +11,8 @@ export default function LoginPage() {
       {/* Dark brand panel */}
       <div className="hidden lg:flex flex-col justify-between w-[42%] bg-[#0F172A] p-12 shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-500 text-white font-bold text-sm">H</div>
-          <span className="font-semibold text-white tracking-tight">Horus AI</span>
+          <LogoMark size={32} context="dark" />
+          <span className="text-sm font-bold tracking-widest uppercase text-white">HORUS AI</span>
         </div>
         <div className="space-y-4">
           <p className="text-2xl font-semibold text-white leading-snug">
@@ -28,8 +29,8 @@ export default function LoginPage() {
       <div className="flex flex-1 items-center justify-center bg-slate-50 p-8">
         <div className="w-full max-w-sm space-y-6">
           <div className="lg:hidden flex items-center gap-2.5 mb-6">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-500 text-white font-bold text-sm">H</div>
-            <span className="font-semibold tracking-tight">Horus AI</span>
+            <LogoMark size={28} context="light" />
+            <span className="text-sm font-bold tracking-widest uppercase">HORUS AI</span>
           </div>
           <div>
             <h1 className="text-xl font-semibold">Sign in</h1>

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { LayoutDashboard, Search, Kanban, Settings, Network } from 'lucide-react'
+import LogoMark from '@/components/shared/LogoMark'
 
 const nav = [
   { href: '/dashboard',   label: 'Dashboard',  icon: LayoutDashboard },
@@ -36,9 +37,9 @@ export default function Sidebar() {
 
   return (
     <aside className="flex flex-col w-[220px] shrink-0 bg-[#0F172A] border-r border-[#1E293B]">
-      <div className="flex items-center gap-2.5 px-4 h-14 border-b border-[#1E293B]">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500 text-white font-bold text-sm">H</div>
-        <span className="font-semibold text-sm text-white tracking-tight">Horus AI</span>
+      <div className="flex items-center gap-2.5 px-5 h-14 border-b border-[#1E293B]">
+        <LogoMark size={24} context="dark" />
+        <span className="text-sm font-bold tracking-widest uppercase text-white">HORUS</span>
       </div>
       <nav className="flex-1 p-2.5 space-y-0.5">
         {nav.map(({ href, label, icon: Icon }) => (
