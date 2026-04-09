@@ -23,6 +23,7 @@ async def build_clusters(tenant_id: str) -> list[dict]:
         if ts >= 4: return "medium"
         return "low"
 
+    # Pass 1: geo + industry + transition
     buckets: dict[tuple, list] = {}
     for t in targets_res.data:
         key = (
@@ -32,30 +33,52 @@ async def build_clusters(tenant_id: str) -> list[dict]:
         )
         buckets.setdefault(key, []).append(t)
 
-    buckets = {k: v for k, v in buckets.items() if len(v) >= 2}
+    multi_buckets = {k: v for k, v in buckets.items() if len(v) >= 2}
 
-    if not buckets:
+    # Pass 2: if fewer than 3 multi-member clusters, fall back to country + industry groupings
+    if len(multi_buckets) < 3:
+        final_buckets: dict[str, tuple] = {}
+
+        # Country-level — include all (even single-member)
+        country_buckets: dict[str, list] = {}
         for t in targets_res.data:
-            key = (t.get("country") or "unknown", "all", "mixed")
-            buckets.setdefault(key, []).append(t)
+            key = t.get("country") or "unknown"
+            country_buckets.setdefault(key, []).append(t)
+        for country, members in country_buckets.items():
+            final_buckets[f"country_{country}"] = (country, "all", "mixed", members)
+
+        # Industry-level — only 2+ members
+        industry_buckets: dict[str, list] = {}
+        for t in targets_res.data:
+            key = t.get("industry_code") or "unknown"
+            industry_buckets.setdefault(key, []).append(t)
+        for industry_code, members in industry_buckets.items():
+            if len(members) >= 2:
+                industry_label = members[0].get("industry_label") or industry_code
+                final_buckets[f"industry_{industry_code}"] = (industry_code, industry_label, "mixed", members)
+    else:
+        final_buckets = {
+            f"{k[0]}_{k[1]}_{k[2]}": (k[0], k[1], k[2], v)
+            for k, v in multi_buckets.items()
+        }
 
     clusters = []
-    for (country, industry_code, transition), members in buckets.items():
+    for cluster_key, cluster_data in final_buckets.items():
+        if len(cluster_data) != 4:
+            continue
+        country, industry, transition, members = cluster_data
         member_names = [m["name"] for m in members[:5]]
-        industry_label = members[0].get("industry_label") or industry_code
+        industry_label = members[0].get("industry_label") or industry
 
         prompt = f"""You are analysing a cluster of SME acquisition targets for a Search Fund operator.
 
 Cluster profile:
-- Country: {country}
-- Industry: {industry_label} ({industry_code})
-- Transition readiness: {transition} (owner succession urgency)
+- Country/Region: {country}
+- Industry: {industry_label}
 - Members ({len(members)}): {', '.join(member_names)}
 
-Write a short cluster label (4–6 words) and a 1-sentence description of the acquisition opportunity this cluster represents.
-
-Respond ONLY as JSON:
-{{"label": "...", "description": "..."}}"""
+Write a short cluster label (4-6 words) and a 1-sentence description.
+Respond ONLY as JSON: {{"label": "...", "description": "..."}}"""
 
         try:
             msg = client.messages.create(
@@ -63,13 +86,12 @@ Respond ONLY as JSON:
                 max_tokens=200,
                 messages=[{"role": "user", "content": prompt}]
             )
-            raw = msg.content[0].text.strip()
-            raw = raw.replace("```json", "").replace("```", "").strip()
+            raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
             named = json.loads(raw)
         except Exception:
             named = {
-                "label": f"{country} {industry_label} ({transition} transition)",
-                "description": f"Cluster of {len(members)} {industry_label} businesses in {country}."
+                "label": f"{country} {industry_label}",
+                "description": f"Cluster of {len(members)} companies."
             }
 
         cluster = {
@@ -80,7 +102,7 @@ Respond ONLY as JSON:
             "member_count": len(members),
             "metadata": {
                 "country": country,
-                "industry_code": industry_code,
+                "industry_code": industry,
                 "industry_label": industry_label,
                 "transition_bracket": transition,
                 "member_ids": [m["id"] for m in members]

@@ -1,12 +1,14 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { DndContext, DragEndEvent, closestCenter, PointerSensor, useSensor, useSensors, useDroppable, useDraggable } from '@dnd-kit/core'
-import { api, PipelineEntry } from '@/lib/api/client'
+import { api, PipelineEntry, Target } from '@/lib/api/client'
 import ScoreBadge from '@/components/shared/ScoreBadge'
 import { Button } from '@/components/ui/button'
-import { Trash2 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Trash2, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 const STAGES = [
   { id: 'watchlist',  label: 'Watchlist',  color: 'bg-slate-50 border-slate-200' },
@@ -19,14 +21,19 @@ const STAGES = [
 export default function PipelinePage() {
   const [entries, setEntries] = useState<PipelineEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [showAdd, setShowAdd] = useState(false)
+  const [search, setSearch] = useState('')
+  const [searchResults, setSearchResults] = useState<Target[]>([])
+  const [searching, setSearching] = useState(false)
 
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: { distance: 8 }
   }))
 
-  useEffect(() => {
+  const loadEntries = () =>
     api.pipeline.list().then(r => { setEntries(r.data); setLoading(false) })
-  }, [])
+
+  useEffect(() => { loadEntries() }, [])
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
@@ -43,21 +50,95 @@ export default function PipelinePage() {
     await api.pipeline.remove(id)
   }
 
+  const searchTargets = async (q: string) => {
+    if (!q.trim()) { setSearchResults([]); return }
+    setSearching(true)
+    try {
+      const res = await api.targets.list({ search: q })
+      const inPipeline = new Set(entries.map(e => e.target_id))
+      setSearchResults(res.data.filter(t => !inPipeline.has(t.id)))
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  const addTarget = async (targetId: string) => {
+    try {
+      await api.targets.addToPipeline(targetId)
+      await loadEntries()
+      setShowAdd(false)
+      setSearch('')
+      setSearchResults([])
+      toast.success('Added to watchlist')
+    } catch {
+      toast.error('Failed to add to pipeline')
+    }
+  }
+
+  const closeModal = () => { setShowAdd(false); setSearch(''); setSearchResults([]) }
+
   if (loading) return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Pipeline</h1>
+      <h1 className="text-xl font-semibold tracking-tight">Pipeline</h1>
       <p className="text-muted-foreground text-sm">Loading...</p>
     </div>
   )
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Pipeline</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">
-          {entries.length} {entries.length === 1 ? 'company' : 'companies'} tracked · drag cards to move stages
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Pipeline</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            {entries.length} {entries.length === 1 ? 'company' : 'companies'} tracked · drag cards to move stages
+          </p>
+        </div>
+        <Button size="sm" className="gap-1.5" onClick={() => setShowAdd(v => !v)}>
+          <Plus className="h-3.5 w-3.5" />
+          Add company
+        </Button>
       </div>
+
+      {showAdd && (
+        <div className="border rounded-md bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Add to pipeline</p>
+            <button onClick={closeModal} className="text-xs text-muted-foreground hover:text-foreground">✕</button>
+          </div>
+          <Input
+            className="h-8 text-sm"
+            placeholder="Search companies..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); searchTargets(e.target.value) }}
+            autoFocus
+          />
+          {searching && <p className="text-xs text-muted-foreground">Searching...</p>}
+          {searchResults.length > 0 && (
+            <div className="divide-y border rounded-md">
+              {searchResults.map(t => (
+                <div key={t.id} className="flex items-center justify-between px-3 py-2 hover:bg-muted/30">
+                  <div>
+                    <p className="text-xs font-medium">{t.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {[t.city, t.country].filter(Boolean).join(', ')}
+                      {t.industry_label ? ` · ${t.industry_label}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <ScoreBadge score={t.target_scores?.[0]?.overall_score} size="sm" />
+                    <Button size="sm" className="h-6 text-xs px-2" onClick={() => addTarget(t.id)}>
+                      Add
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {search && !searching && searchResults.length === 0 && (
+            <p className="text-xs text-muted-foreground">No companies found</p>
+          )}
+        </div>
+      )}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-5 gap-3 min-h-[500px]">
@@ -72,12 +153,12 @@ export default function PipelinePage() {
         </div>
       </DndContext>
 
-      {entries.length === 0 && (
+      {entries.length === 0 && !showAdd && (
         <div className="text-center py-12 text-muted-foreground text-sm">
           No companies in your pipeline yet.{' '}
-          <Link href="/discovery" className="text-primary hover:underline">
-            Add targets from Discovery
-          </Link>
+          <button onClick={() => setShowAdd(true)} className="text-primary hover:underline">
+            Add your first company
+          </button>
         </div>
       )}
     </div>
