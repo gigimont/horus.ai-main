@@ -3,9 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Target } from '@/lib/api/client'
 import ScoreBadge from '@/components/shared/ScoreBadge'
 
-interface Props {
-  targets: Target[]
-}
+interface Props { targets: Target[] }
 
 const SCORE_COLOR = (score: number | undefined) => {
   if (!score) return '#94a3b8'
@@ -16,10 +14,9 @@ const SCORE_COLOR = (score: number | undefined) => {
 
 export default function MapView({ targets }: Props) {
   const mapContainer = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<unknown>(null)
-  const markersRef = useRef<{ remove: () => void }[]>([])
+  const mapRef = useRef<mapboxgl.Map | null>(null)
+  const markersRef = useRef<mapboxgl.Marker[]>([])
   const [selected, setSelected] = useState<Target | null>(null)
-  const [mapReady, setMapReady] = useState(false)
 
   const mappable = useMemo(
     () => targets.filter(t => t.lat != null && t.lng != null),
@@ -27,59 +24,69 @@ export default function MapView({ targets }: Props) {
   )
   const noCoords = targets.length - mappable.length
 
-  // Init map once
-  useEffect(() => {
-    if (!mapContainer.current) return
-    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-    if (!token) return
+  const addMarkers = (map: mapboxgl.Map, mapboxgl: typeof import('mapbox-gl').default) => {
+    markersRef.current.forEach(m => m.remove())
+    markersRef.current = []
 
-    import('mapbox-gl').then(({ default: mapboxgl }) => {
-      (mapboxgl as { accessToken: string }).accessToken = token
+    mappable.forEach(target => {
+      const score = target.target_scores?.[0]?.overall_score
+      const color = SCORE_COLOR(score)
+      const el = document.createElement('div')
+      el.style.cssText = `width:28px;height:28px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.25);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;`
+      el.textContent = score ? score.toFixed(1) : '?'
+      el.onclick = () => setSelected(target)
+
+      const marker = new mapboxgl.Marker({ element: el })
+        .setLngLat([target.lng!, target.lat!])
+        .addTo(map)
+      markersRef.current.push(marker)
+    })
+  }
+
+  useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+    if (!token || !mapContainer.current) return
+
+    import('mapbox-gl').then(mod => {
+      const mapboxgl = mod.default
+
+      // Inject Mapbox CSS once — required for correct marker positioning
+      if (!document.getElementById('mapbox-gl-css')) {
+        const link = document.createElement('link')
+        link.id = 'mapbox-gl-css'
+        link.rel = 'stylesheet'
+        link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.21.0/mapbox-gl.css'
+        document.head.appendChild(link)
+      }
+
+      if (mapRef.current) {
+        // Map already initialized — just refresh markers
+        addMarkers(mapRef.current, mapboxgl)
+        return
+      }
+
+      mapboxgl.accessToken = token
       const map = new mapboxgl.Map({
         container: mapContainer.current!,
         style: 'mapbox://styles/mapbox/light-v11',
         center: [10, 50],
         zoom: 3.5,
       })
+
+      mapRef.current = map
+
       map.on('load', () => {
-        mapRef.current = map
-        setMapReady(true)
+        addMarkers(map, mapboxgl)
       })
     })
 
     return () => {
       markersRef.current.forEach(m => m.remove())
       markersRef.current = []
-      if (mapRef.current) {
-        (mapRef.current as { remove: () => void }).remove()
-        mapRef.current = null
-      }
-      setMapReady(false)
+      mapRef.current?.remove()
+      mapRef.current = null
     }
-  }, []) // empty — map inits once, never re-creates on filter changes
-
-  // Add/update markers whenever map becomes ready or mappable list changes
-  useEffect(() => {
-    if (!mapReady || !mapRef.current) return
-
-    import('mapbox-gl').then(({ default: mapboxgl }) => {
-      markersRef.current.forEach(m => m.remove())
-      markersRef.current = []
-
-      mappable.forEach(target => {
-        const score = target.target_scores?.[0]?.overall_score
-        const color = SCORE_COLOR(score)
-        const el = document.createElement('div')
-        el.style.cssText = `width:28px;height:28px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.25);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;`
-        el.textContent = score ? score.toFixed(1) : '?'
-        el.onclick = () => setSelected(target)
-        const marker = new mapboxgl.Marker({ element: el })
-          .setLngLat([target.lng!, target.lat!])
-          .addTo(mapRef.current as mapboxgl.Map)
-        markersRef.current.push(marker)
-      })
-    })
-  }, [mapReady, mappable])
+  }, [mappable]) // re-run when targets change; early-return guards against map re-init
 
   return (
     <div className="relative rounded-lg overflow-hidden border" style={{ height: 480 }}>
