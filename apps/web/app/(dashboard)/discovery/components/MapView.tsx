@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Target } from '@/lib/api/client'
 import ScoreBadge from '@/components/shared/ScoreBadge'
 
@@ -21,7 +21,10 @@ export default function MapView({ targets }: Props) {
   const [selected, setSelected] = useState<Target | null>(null)
   const [mapReady, setMapReady] = useState(false)
 
-  const mappable = targets.filter(t => t.lat != null && t.lng != null)
+  const mappable = useMemo(
+    () => targets.filter(t => t.lat != null && t.lng != null),
+    [targets]
+  )
   const noCoords = targets.length - mappable.length
 
   // Init map once
