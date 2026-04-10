@@ -8,17 +8,29 @@ import ScoreBadge from '@/components/shared/ScoreBadge'
 import ScoreGauge from '../components/ScoreGauge'
 import CopilotChat from '../components/CopilotChat'
 import AddToPipelineButton from '../components/AddToPipelineButton'
+import { createClient } from '@/lib/supabase/server'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
-async function getTarget(id: string) {
-  const res = await fetch(`${API}/targets/${id}`, { cache: 'no-store' })
+async function authHeader(): Promise<Record<string, string>> {
+  try {
+    const supabase = await createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session?.access_token) {
+      return { Authorization: `Bearer ${session.access_token}` }
+    }
+  } catch {}
+  return {}
+}
+
+async function getTarget(id: string, headers: Record<string, string>) {
+  const res = await fetch(`${API}/targets/${id}`, { cache: 'no-store', headers })
   if (!res.ok) return null
   return res.json()
 }
 
-async function getSimilar(id: string) {
-  const res = await fetch(`${API}/targets/${id}/similar`, { cache: 'no-store' })
+async function getSimilar(id: string, headers: Record<string, string>) {
+  const res = await fetch(`${API}/targets/${id}/similar`, { cache: 'no-store', headers })
   if (!res.ok) return []
   const data = await res.json()
   return data.data ?? []
@@ -31,7 +43,8 @@ function fmt(n: number | null | undefined, prefix = '') {
 
 export default async function TargetDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const [target, similar] = await Promise.all([getTarget(id), getSimilar(id)])
+  const headers = await authHeader()
+  const [target, similar] = await Promise.all([getTarget(id, headers), getSimilar(id, headers)])
 
   if (!target) notFound()
 
