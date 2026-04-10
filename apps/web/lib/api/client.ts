@@ -87,6 +87,58 @@ export const api = {
     refresh: () => apiFetch<{ message: string }>('/clusters/refresh', { method: 'POST' }),
     status: () => apiFetch<{ running: boolean; done: boolean; count: number }>('/clusters/status'),
   },
+  rollup: {
+    list: () =>
+      apiFetch<{ data: RollupScenario[] }>('/rollup/'),
+    create: (name: string, description?: string) =>
+      apiFetch<RollupScenario>('/rollup/', {
+        method: 'POST',
+        body: JSON.stringify({ name, description }),
+      }),
+    get: (id: string) =>
+      apiFetch<RollupScenario>(`/rollup/${id}`),
+    update: (id: string, data: { name?: string; description?: string; status?: string }) =>
+      apiFetch<RollupScenario>(`/rollup/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      apiFetch<void>(`/rollup/${id}`, { method: 'DELETE' }),
+    duplicate: (id: string) =>
+      apiFetch<RollupScenario>(`/rollup/${id}/duplicate`, { method: 'POST' }),
+    addTarget: (scenarioId: string, targetId: string) =>
+      apiFetch<RollupScenario>(`/rollup/${scenarioId}/targets`, {
+        method: 'POST',
+        body: JSON.stringify({ target_id: targetId }),
+      }),
+    updateTarget: (scenarioId: string, targetId: string, data: Partial<RollupScenarioTarget>) =>
+      apiFetch<RollupScenarioTarget>(`/rollup/${scenarioId}/targets/${targetId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    removeTarget: (scenarioId: string, targetId: string) =>
+      apiFetch<void>(`/rollup/${scenarioId}/targets/${targetId}`, { method: 'DELETE' }),
+    reorder: (scenarioId: string, order: { target_id: string; sequence_order: number }[]) =>
+      apiFetch<{ ok: boolean }>(`/rollup/${scenarioId}/reorder`, {
+        method: 'POST',
+        body: JSON.stringify({ order }),
+      }),
+    financials: (id: string) =>
+      apiFetch<RollupFinancials>(`/rollup/${id}/financials`),
+    estimateEbitda: (scenarioId: string, targetId: string) =>
+      apiFetch<{ ebitda_margin_pct: number; ebitda_margin_source: string }>(
+        `/rollup/${scenarioId}/estimate-ebitda/${targetId}`,
+        { method: 'POST' }
+      ),
+    sequence: (id: string) =>
+      apiFetch<{ suggestions: { target_id: string; suggested_order: number; rationale: string }[] }>(
+        `/rollup/${id}/sequence`,
+        { method: 'POST' }
+      ),
+    memo: (id: string) =>
+      apiFetch<{ memo: string }>(`/rollup/${id}/memo`, { method: 'POST' }),
+    memoPdfUrl: (id: string) => `${API_URL}/rollup/${id}/memo/pdf`,
+  },
 }
 
 export interface Filters {
@@ -171,6 +223,83 @@ export interface Cluster {
       target_scores: { overall_score: number }[]
     } | null
   }[]
+}
+
+export interface RollupScenario {
+  id: string
+  tenant_id: string
+  name: string
+  description: string | null
+  status: 'draft' | 'active' | 'archived'
+  created_by: string | null
+  updated_by: string | null
+  created_at: string
+  updated_at: string
+  target_count?: number
+  rollup_scenario_targets?: RollupScenarioTarget[]
+}
+
+export interface RollupScenarioTarget {
+  id: string
+  scenario_id: string
+  target_id: string
+  sequence_order: number
+  entry_multiple: number
+  ebitda_margin_pct: number | null
+  ebitda_margin_source: 'ai' | 'manual'
+  synergy_pct: number
+  revenue_uplift_pct: number
+  debt_pct: number
+  integration_cost_eur: number
+  hold_period_years: number
+  notes: string | null
+  targets?: {
+    id: string
+    name: string
+    country: string | null
+    city: string | null
+    industry_label: string | null
+    industry_code: string | null
+    revenue_eur: number | null
+    employee_count: number | null
+    founded_year: number | null
+    owner_age_estimate: number | null
+    target_scores: { overall_score: number; transition_score: number; financial_score: number; key_signals: string[]; rationale: string }[]
+  } | null
+}
+
+export interface TargetFinancials {
+  target_id: string
+  name: string
+  sequence_order: number
+  revenue_eur: number
+  ebitda: number
+  entry_cost: number
+  debt: number
+  equity_in: number
+  synergy_value: number
+  revenue_uplift: number
+}
+
+export interface CombinedFinancials {
+  total_revenue: number
+  total_ebitda_pre_synergy: number
+  total_synergy_value: number
+  total_revenue_uplift: number
+  proforma_ebitda: number
+  proforma_revenue: number
+  total_entry_cost: number
+  total_integration_cost: number
+  total_equity_in: number
+  total_debt: number
+  avg_entry_multiple: number
+  exit_value: number
+  equity_return_pct: number
+}
+
+export interface RollupFinancials {
+  targets: TargetFinancials[]
+  combined: CombinedFinancials
 }
 
 export async function streamChat(
