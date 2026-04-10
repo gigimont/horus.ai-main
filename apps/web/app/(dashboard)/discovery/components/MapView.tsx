@@ -1,4 +1,5 @@
 'use client'
+import 'mapbox-gl/dist/mapbox-gl.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Target } from '@/lib/api/client'
@@ -51,15 +52,6 @@ export default function MapView({ targets }: Props) {
     import('mapbox-gl').then(mod => {
       const mapboxgl = mod.default
 
-      // Inject Mapbox CSS once — required for correct marker positioning
-      if (!document.getElementById('mapbox-gl-css')) {
-        const link = document.createElement('link')
-        link.id = 'mapbox-gl-css'
-        link.rel = 'stylesheet'
-        link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.21.0/mapbox-gl.css'
-        document.head.appendChild(link)
-      }
-
       if (mapRef.current) {
         // Map already initialized — just refresh markers
         addMarkers(mapRef.current, mapboxgl)
@@ -87,48 +79,52 @@ export default function MapView({ targets }: Props) {
       mapRef.current?.remove()
       mapRef.current = null
     }
-  }, [mappable]) // re-run when targets change; early-return guards against map re-init
+  }, [mappable])
 
   return (
-    <div className="relative rounded-lg overflow-hidden border" style={{ height: 480 }}>
-      <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
+    <div>
+      <div className="relative rounded-sm overflow-hidden border" style={{ height: 480 }}>
+        <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
 
-      {!process.env.NEXT_PUBLIC_MAPBOX_TOKEN && (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted">
-          <p className="text-sm text-muted-foreground">Mapbox token not configured</p>
-        </div>
-      )}
-
-      {noCoords > 0 && (
-        <div className="absolute bottom-3 left-3 bg-card/90 backdrop-blur-sm rounded-md px-3 py-1.5 text-xs text-muted-foreground border">
-          {noCoords} target{noCoords > 1 ? 's' : ''} not shown — coordinates pending
-        </div>
-      )}
-
-      {selected && (
-        <div className="absolute top-3 right-3 bg-card rounded-lg border shadow-lg p-4 w-64">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <div>
-              <p className="text-sm font-semibold">{selected.name}</p>
-              <p className="text-xs text-muted-foreground">
-                {[selected.city, selected.country].filter(Boolean).join(', ')}
-              </p>
-            </div>
-            <ScoreBadge score={selected.target_scores?.[0]?.overall_score} size="sm" />
+        {!process.env.NEXT_PUBLIC_MAPBOX_TOKEN && (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted">
+            <p className="text-sm text-muted-foreground">Mapbox token not configured</p>
           </div>
-          {selected.industry_label && (
-            <p className="text-xs text-muted-foreground mb-3">{selected.industry_label}</p>
-          )}
-          <div className="flex gap-2">
-            {console.log('Selected target:', selected?.id, selected?.name) as unknown as null}
+        )}
+
+        {noCoords > 0 && (
+          <div className="absolute bottom-3 left-3 bg-card/90 backdrop-blur-sm rounded-md px-3 py-1.5 text-xs text-muted-foreground border">
+            {noCoords} target{noCoords > 1 ? 's' : ''} not shown — coordinates pending
+          </div>
+        )}
+
+        <div className="absolute bottom-3 right-3 bg-card/90 backdrop-blur-sm rounded-md px-3 py-2 border text-xs space-y-1">
+          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /><span className="text-muted-foreground">Score ≥ 7.5</span></div>
+          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-amber-400 inline-block" /><span className="text-muted-foreground">Score 5–7.5</span></div>
+          <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-500 inline-block" /><span className="text-muted-foreground">Score &lt; 5</span></div>
+        </div>
+      </div>
+
+      {/* Popup renders OUTSIDE the map container — no overflow clipping */}
+      {selected && (
+        <div className="mt-2 bg-card rounded-sm border p-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold">{selected.name}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {[selected.city, selected.country].filter(Boolean).join(', ')}
+              {selected.industry_label ? ` · ${selected.industry_label}` : ''}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <ScoreBadge score={selected.target_scores?.[0]?.overall_score} size="sm" />
             <Link
               href={`/discovery/${selected.id}`}
-              className="flex-1 text-xs bg-foreground text-background rounded-sm px-2 py-1.5 hover:opacity-90 transition-opacity text-center"
+              className="text-xs bg-foreground text-background rounded-sm px-3 py-1.5 hover:opacity-90 transition-opacity"
             >
               View detail
             </Link>
             <button
-              className="text-xs text-muted-foreground hover:text-foreground px-2"
+              className="text-xs text-muted-foreground hover:text-foreground"
               onClick={() => setSelected(null)}
             >
               ✕
@@ -136,12 +132,6 @@ export default function MapView({ targets }: Props) {
           </div>
         </div>
       )}
-
-      <div className="absolute bottom-3 right-3 bg-card/90 backdrop-blur-sm rounded-md px-3 py-2 border text-xs space-y-1">
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" /><span className="text-muted-foreground">Score ≥ 7.5</span></div>
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-amber-400 inline-block" /><span className="text-muted-foreground">Score 5–7.5</span></div>
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-red-500 inline-block" /><span className="text-muted-foreground">Score &lt; 5</span></div>
-      </div>
     </div>
   )
 }
