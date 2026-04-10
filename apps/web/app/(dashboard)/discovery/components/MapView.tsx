@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { Target } from '@/lib/api/client'
 import ScoreBadge from '@/components/shared/ScoreBadge'
 
@@ -119,12 +120,13 @@ export default function MapView({ targets }: Props) {
             <p className="text-xs text-muted-foreground mb-3">{selected.industry_label}</p>
           )}
           <div className="flex gap-2">
-            <button
-              className="flex-1 text-xs bg-primary text-primary-foreground rounded-md px-2 py-1.5 hover:opacity-90"
-              onClick={() => { window.location.href = `/discovery/${selected.id}` }}
+            {console.log('Selected target:', selected?.id, selected?.name) as unknown as null}
+            <Link
+              href={`/discovery/${selected.id}`}
+              className="flex-1 text-xs bg-foreground text-background rounded-sm px-2 py-1.5 hover:opacity-90 transition-opacity text-center"
             >
               View detail
-            </button>
+            </Link>
             <button
               className="text-xs text-muted-foreground hover:text-foreground px-2"
               onClick={() => setSelected(null)}
