@@ -1,13 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, BackgroundTasks
 from typing import Optional
-import csv, io
+import csv, io, logging
 from dependencies import get_db, get_tenant_id
 from models.target import TargetCreate, TargetUpdate
 from supabase import Client
 from services.scoring_service import score_single_target
 from services.geocoding_service import geocode_target, geocode_all_ungeocode
+from services.embedding_service import embed_target, embed_all_targets
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.get("/")
 async def list_targets(
@@ -207,6 +209,29 @@ async def score_target_route(
     return {"message": "Scoring started", "target_id": target_id}
 
 
+@router.post("/embed/batch")
+async def embed_batch(
+    background_tasks: BackgroundTasks,
+    tenant_id: str = Depends(get_tenant_id)
+):
+    background_tasks.add_task(embed_all_targets, tenant_id)
+    return {"message": "Embedding started in background"}
+
+
+@router.post("/{target_id}/embed")
+async def embed_single(
+    target_id: str,
+    tenant_id: str = Depends(get_tenant_id),
+    db: Client = Depends(get_db)
+):
+    result = db.table("targets").select("id").eq(
+        "id", target_id).eq("tenant_id", tenant_id).single().execute()
+    if not result.data:
+        raise HTTPException(404, "Target not found")
+    ok = await embed_target(target_id, tenant_id)
+    return {"embedded": ok}
+
+
 @router.get("/{target_id}/similar")
 async def similar_targets(
     target_id: str,
@@ -214,19 +239,46 @@ async def similar_targets(
     tenant_id: str = Depends(get_tenant_id),
     db: Client = Depends(get_db)
 ):
-    """Return targets with the most similar score profile using euclidean distance."""
-    ref = db.table("target_scores").select("*").eq("target_id", target_id).execute()
-    if not ref.data:
-        return {"data": []}
+    """Return semantically similar targets using pgvector, falling back to score distance."""
+    # Check if reference target has an embedding
+    ref = db.table("targets").select(
+        "id, embedding"
+    ).eq("id", target_id).single().execute()
 
-    r = ref.data[0]
+    if not ref.data:
+        raise HTTPException(404, "Target not found")
+
+    # Try pgvector similarity first
+    if ref.data.get("embedding"):
+        try:
+            result = db.rpc("similar_targets_by_embedding", {
+                "target_id_input": target_id,
+                "tenant_id_input": tenant_id,
+                "match_count": limit
+            }).execute()
+
+            if result.data:
+                similar_ids = [r["id"] for r in result.data]
+                targets = db.table("targets").select(
+                    "*, target_scores(overall_score, transition_score, value_score, market_score, financial_score)"
+                ).in_("id", similar_ids).eq("tenant_id", tenant_id).is_("deleted_at", "null").execute()
+                return {"data": targets.data or [], "method": "pgvector"}
+        except Exception as e:
+            logger.warning(f"pgvector similarity failed, falling back: {e}")
+
+    # Fallback: score-based euclidean distance
+    ref_scores = db.table("target_scores").select("*").eq("target_id", target_id).execute()
+    if not ref_scores.data:
+        return {"data": [], "method": "none"}
+
+    r = ref_scores.data[0]
 
     all_scores = db.table("target_scores").select(
         "target_id, overall_score, transition_score, value_score, market_score, financial_score"
     ).eq("tenant_id", tenant_id).neq("target_id", target_id).execute()
 
     if not all_scores.data:
-        return {"data": []}
+        return {"data": [], "method": "none"}
 
     def distance(s):
         return sum([
@@ -243,4 +295,4 @@ async def similar_targets(
         "*, target_scores(overall_score, transition_score, value_score, market_score, financial_score)"
     ).in_("id", similar_ids).eq("tenant_id", tenant_id).is_("deleted_at", "null").execute()
 
-    return {"data": result.data or []}
+    return {"data": result.data or [], "method": "score_distance"}

@@ -44,6 +44,8 @@ export const api = {
       apiFetch<{ message: string; target_id: string }>(`/targets/${id}/geocode`, { method: 'POST' }),
     geocodeBatch: () =>
       apiFetch<{ total: number; success: number; failed: number }>('/targets/geocode/batch', { method: 'POST' }),
+    embedBatch: () =>
+      apiFetch<{ message: string }>('/targets/embed/batch', { method: 'POST' }),
     addToPipeline: (targetId: string) =>
       apiFetch<{ message: string }>('/pipeline/', {
         method: 'POST',

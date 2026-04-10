@@ -7,7 +7,7 @@ import ImportButton from './components/ImportButton'
 import ScoreAllButton from './components/ScoreAllButton'
 import MapView from './components/MapView'
 import { Skeleton } from '@/components/ui/skeleton'
-import { List, Map, Download, MapPin } from 'lucide-react'
+import { List, Map, Download, MapPin, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -38,6 +38,16 @@ export default function DiscoveryPage() {
   useEffect(() => { load() }, [load])
 
   const handleDelete = (id: string) => setTargets(prev => prev.filter(t => t.id !== id))
+
+  const handleEmbed = async () => {
+    const toastId = toast.loading('Starting embedding…')
+    try {
+      await api.targets.embedBatch()
+      toast.success('Embedding started — similar targets will improve shortly', { id: toastId })
+    } catch {
+      toast.error('Embedding failed', { id: toastId })
+    }
+  }
 
   const handleGeocode = async () => {
     const toastId = toast.loading('Geocoding targets…')
@@ -101,6 +111,13 @@ export default function DiscoveryPage() {
           >
             <MapPin className="h-3.5 w-3.5" />
             Geocode
+          </button>
+          <button
+            onClick={handleEmbed}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Embed
           </button>
           <ScoreAllButton onComplete={load} />
         </div>
