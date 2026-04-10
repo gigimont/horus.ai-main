@@ -54,11 +54,19 @@ export default function ClustersPage() {
               : `${clusters.length} clusters · ${clusters.reduce((s, c) => s + c.member_count, 0)} targets grouped`}
           </p>
         </div>
-        <Button size="sm" variant="outline" className="gap-2" onClick={handleRefresh} disabled={refreshing}>
-          {refreshing
-            ? <><Loader2 className="h-4 w-4 animate-spin" /> Clustering…</>
-            : <><RefreshCw className="h-4 w-4" /> Refresh clusters</>}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/rollup"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-input bg-background text-xs font-medium hover:bg-accent transition-colors"
+          >
+            Build roll-up →
+          </Link>
+          <Button size="sm" variant="outline" className="gap-2" onClick={handleRefresh} disabled={refreshing}>
+            {refreshing
+              ? <><Loader2 className="h-4 w-4 animate-spin" /> Clustering…</>
+              : <><RefreshCw className="h-4 w-4" /> Refresh clusters</>}
+          </Button>
+        </div>
       </div>
 
       {loading ? (
