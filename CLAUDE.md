@@ -1,132 +1,197 @@
-# ESMT Berlin Hackathon – AI-Native Startup Builder
+# Horus AI — Claude Code Context
 
-## What This Is
+## Project overview
 
-You are helping a participant at the ESMT Berlin Ideation Bootcamp build a startup landing page with a working backend. The participant may have limited coding experience — that's the point. You are their AI engineering partner.
+B2B SaaS platform for Search Fund operators. AI-powered SME acquisition target discovery, scoring, clustering, roll-up modeling, and deal pipeline management. Institutional design language (Palantir-grade).
 
-## Project Stack
-
-- **Frontend**: React + Tailwind CSS (via Vite)
-- **Backend**: Python with FastAPI
-- **Frontend tests**: Vitest + React Testing Library
-- **Backend tests**: pytest + httpx
-- **Package managers**: npm (frontend), pip (backend)
-
-## Your Workflow — STRICT TDD + Spec-Driven
-
-You MUST follow this workflow for every change. No exceptions.
-
-### 1. Read the Spec First
-
-Before writing any code, read the relevant spec file in `docs/`. Work through features in order:
-`01_landing_page/` → `02_waiting_list/`
-
-Each folder contains a `spec.md` with requirements.
-
-### 2. Red-Green-Refactor (One Test at a Time)
+## Repository structure
 
 ```
-RED:    Write ONE failing test. Run it. Confirm it fails.
-GREEN:  Write the MINIMUM code to make that test pass.
-REFACTOR: Clean up. Run tests again. All must still pass.
+searchfund-platform/
+├── apps/
+│   ├── web/          Next.js 16 frontend (Vercel)
+│   └── api/          FastAPI backend (Fly.io)
+└── supabase/         Migrations + seed data
 ```
 
-**Rules:**
-- Do NOT write implementation before a failing test exists
-- Do NOT write multiple tests at once
-- Do NOT modify tests to make them pass — fix the implementation
-- After each green: `git add -A && git commit -m "feat: <what you just did>"`
+## Tech stack
 
-### 3. Git Discipline
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 16 (App Router), TypeScript, Tailwind CSS, shadcn/ui |
+| Backend | Python 3.12, FastAPI, Pydantic v2 |
+| Database | Supabase (PostgreSQL + pgvector) |
+| Auth | Supabase Auth + custom JWT claims with tenant_id |
+| AI | Anthropic Claude API (claude-sonnet-4-20250514) |
+| Drag and drop | @dnd-kit/core + @dnd-kit/sortable (already installed — never add a second DnD library) |
+| Deployment | Vercel (frontend) + Fly.io (backend) |
 
-- Commit after every passing test with a conventional commit message
-- Use prefixes: `feat:`, `fix:`, `test:`, `refactor:`, `docs:`
-- Never commit failing tests (red state)
+## Live URLs
 
-#### Branching
+- Frontend: https://horus-ai-main.vercel.app
+- Backend: https://searchfund-api.fly.dev
+- Supabase project: ymtxkrhejxzsubhhrpxi
 
-- Before starting a new spec phase, create a feature branch (e.g. `phase1/landing-page`, `phase2/waiting-list`)
-- Do all work for that phase on the feature branch
-- Once all tests pass for the phase, merge the branch into `main`
-- Keep `main` in a passing state at all times — never merge broken code
-
-## Commands
+## Running locally
 
 ```bash
-npm run dev                         # Start frontend + backend together
-npm run dev:frontend                # Vite dev server only (port 5173)
-npm run dev:backend                 # FastAPI only (port 3004)
-npm test                            # Runs pytest + vitest together
-npm run test:py                     # Python tests only
-npm run test:js                     # JavaScript tests only
-npm run build                       # Build frontend for production
-git log --oneline                   # See your commit history
+# Terminal 1 — FastAPI backend
+cd apps/api
+source .venv/bin/activate
+uvicorn main:app --reload --port 8000
+
+# Terminal 2 — Next.js frontend
+cd apps/web
+pnpm dev
+
+# Health check
+curl http://localhost:8000/health
 ```
 
-## File Structure
+## Deploying
 
-```
-frontend/              # React frontend
-├── App.jsx            # Main component — your landing page
-├── main.jsx           # React entry point
-├── index.css          # Tailwind CSS imports
-└── components/        # React components (you build these)
-backend/               # FastAPI backend
-├── server.py          # API routes
-└── models.py          # Pydantic models
-tests/
-├── phase1/            # Pre-written: server + component tests (make these pass first)
-│   ├── test_server.py
-│   └── app.test.jsx
-└── phase2/            # You write these: waiting list tests
-docs/
-├── 00_project/        # Your startup idea (filled in by /interview)
-├── 01_landing_page/   # Phase 1 spec: server + landing page
-├── 02_waiting_list/   # Phase 2 spec: signup form + API
-└── 03_mvp/            # Phase 3 spec: core product feature (created by /mvp)
+```bash
+# Backend
+cd apps/api && fly deploy
+
+# Frontend — push to GitHub, Vercel auto-deploys
+git add . && git commit -m "..." && git push
 ```
 
-## Design Principles
+## Database
 
-When building the frontend, always read the **Design Direction** section in `docs/00_project/01_overview.md` first. The archetype, fonts, colors, mode (dark/light), border radius, and shadow style defined there drive every design decision below.
+- 10 migrations applied (001–010)
+- All tables have RLS enabled using `get_tenant_id()` helper function
+- Tenant isolation is enforced at DB layer, not just app layer
+- pgvector enabled — `embedding vector(1536)` on targets table
+- Never hard-delete targets — use `deleted_at` soft delete pattern
 
-- **Typography**: Load the heading font from Google Fonts via a `<link>` tag in `index.html`. Extend `tailwind.config.js` to add the font as a custom `fontFamily`. Use `text-4xl` or larger for hero headings, `text-lg` for body. Ensure comfortable line height (`leading-relaxed`).
-- **Spacing**: Use generous whitespace. Hero sections need `py-24` or more. Sections need `py-16` minimum. Use consistent spacing rhythm.
-- **Layout**: Max content width of `max-w-6xl` centered with `mx-auto`. Add `px-4` or `px-6` for mobile padding.
-- **Hero**: Full-width background, high contrast text, vertically centered content. The hero should feel bold and spacious — not cramped.
-- **Feature cards**: Use `shadow-sm` or subtle borders, rounded corners (`rounded-xl`), consistent card sizing. Grid layout: 1 column on mobile, 3 on desktop (`grid-cols-1 md:grid-cols-3`).
-- **CTA buttons**: Large (`px-8 py-4`), high contrast, rounded (`rounded-lg`), clear hover state (`hover:bg-opacity-90`). Use the primary brand color.
-- **Color**: Use the primary and accent colors from `docs/00_project/01_overview.md`. Add them as custom colors in `tailwind.config.js` (e.g. `primary: '#2563EB'`). For dark mode archetypes, use dark backgrounds (`gray-900`, `gray-950`) with light text. For light mode, keep backgrounds neutral (`white`, `gray-50`). Alternate section backgrounds for visual rhythm.
-- **Border radius and shadows**: Use the border radius and shadow style from the archetype. Apply consistently across all cards, buttons, and inputs.
-- **Mobile-first**: Always start with mobile layout, add responsive breakpoints with `md:` and `lg:` prefixes.
-- **Transitions**: Add subtle transitions on interactive elements (`transition-colors duration-200`).
-- **Icons**: Use `lucide-react` for all icons. Import only what you need (e.g. `import { Zap, Shield, Clock } from "lucide-react"`). Size icons with `size={24}` or Tailwind `w-6 h-6`.
-- **Animations**: Use `framer-motion` for scroll animations. Wrap sections in `motion.div` with `initial`, `whileInView`, and `viewport={{ once: true }}`. Stagger feature cards for a polished reveal. Keep animations subtle — `y: 20` fade-ups, `duration: 0.5`.
-- **Backgrounds**: Avoid flat single-color sections. Use gradients (`bg-gradient-to-br`), subtle patterns, or alternating light/dark sections to create visual depth.
-- **Visual variety**: Alternate section layouts. Not every section should be centered text + grid. Mix in left-right layouts, numbered steps, and quote cards.
-- **Remotion compositions**: Use `@remotion/player` with `<Player>` for timeline-based animations. Import from `remotion` (`useCurrentFrame`, `interpolate`, `AbsoluteFill`, `Sequence`). Keep compositions self-contained in their own files under `frontend/components/`. Always set `autoPlay`, `loop`, `controls={false}`. Use `interpolate()` for smooth easing — never raw frame math.
+### Key tables
+- `tenants` — one per Search Fund operator team
+- `users` — linked to Supabase Auth, has tenant_id
+- `targets` — SME acquisition targets with lat/lng/embedding
+- `target_scores` — Claude-generated scores (transition/value/market/financial)
+- `clusters` — AI-named target clusters
+- `pipeline_entries` — kanban deal tracking
+- `rollup_scenarios` + `rollup_scenario_targets` — roll-up modeler
 
-## Customization
+## Multi-tenancy
 
-This is YOUR startup. The structure and tests are fixed, but the content is yours:
-- Your startup name, tagline, and value proposition
-- Your color scheme and visual identity
-- Your copy, imagery references, and tone
+Every request is scoped to a tenant. The FastAPI `get_tenant_id()` dependency extracts tenant_id from the Supabase JWT. In development, falls back to demo tenant UUID if no token present. In production, always requires a valid JWT.
 
-Run `/interview` to define your startup idea before you begin coding.
+Demo tenant UUID: `00000000-0000-0000-0000-000000000001`
+Production tenant UUID (Giuseppe): `b430624d-4a8c-4fe4-858c-fb7233ec43c2`
 
-## Secrets and API Keys
+## Auth pattern
 
-- NEVER hardcode API keys, tokens, or secrets in source code
-- Always load secrets from environment variables using `.env`
-- Use `python-dotenv` or `os.environ` in Python, never inline strings
-- If the participant asks to add an API key, guide them to put it in `.env` and load it at runtime
-- The `.env` file is already in `.gitignore` — never remove it
+- Supabase Auth handles login/signup
+- Custom JWT hook (`custom_access_token_hook`) injects tenant_id into every JWT
+- Frontend passes `Authorization: Bearer <token>` on every API call via `apiFetch` in `lib/api/client.ts`
+- Server components fetch auth via `lib/supabase/server.ts` (cookie-based)
+- Client components use `lib/supabase/client.ts` (browser-based)
 
-## Important Notes
+## Frontend conventions
 
-- When in doubt, ask the participant what they want
-- Keep responses concise. Show the test result, then move on.
-- If the participant seems stuck, suggest they read the next spec file
-- Prefer simple, readable code over clever abstractions
-- FastAPI auto-generates API docs at `/docs` — remind participants to check it
+- All pages under `app/(dashboard)/` are protected routes
+- All pages under `app/(auth)/` are public
+- Middleware is in `proxy.ts` (Next.js 16 renamed middleware.ts)
+- Use `'use client'` only when needed — prefer server components
+- Toast notifications via `sonner` — never use `alert()` or `confirm()`
+- Two-step confirm for destructive actions (no browser dialogs)
+- Score badges: green ≥7.5, amber 5–7.5, red <5
+- All numeric data: `font-mono tabular-nums`
+- Border radius: `rounded-sm` everywhere (institutional feel — never `rounded-lg`)
+- No shadows, no gradients
+
+## Backend conventions
+
+- All routers in `apps/api/routers/` registered in `main.py`
+- All AI logic in `apps/api/services/`
+- Claude API calls always use `claude-sonnet-4-20250514`
+- Always parse JSON from Claude with `.replace("```json","").replace("```","").strip()`
+- Background tasks use FastAPI `BackgroundTasks` — for long operations use synchronous endpoints (Fly.io free tier sleeps mid-task)
+- Soft delete pattern: filter with `.is_("deleted_at", "null")` on all target queries
+
+## AI features
+
+| Feature | Location | Notes |
+|---|---|---|
+| SME scoring | `services/scoring_service.py` | 4 dimensions, weighted average, Claude validates |
+| EBITDA estimation | `services/rollup_service.py` | Per target when added to scenario |
+| Cluster naming | `services/clustering_service.py` | Claude names each cluster |
+| Sequence recommendation | `services/rollup_service.py` | Optimal acquisition order |
+| IC memo generation | `services/rollup_service.py` | 7-section structured memo |
+| Semantic embeddings | `services/embedding_service.py` | 48-dim → 1536-dim, stored in pgvector |
+| Geocoding | `services/geocoding_service.py` | Mapbox Geocoding API |
+| Copilot chat | `routers/chat.py` | SSE streaming, target-contextualised |
+| PDF reports | `routers/exports.py` | ReportLab, per-target and roll-up memo |
+
+## Environment variables
+
+### Frontend (`apps/web/.env.local`)
+```
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_MAPBOX_TOKEN
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+```
+
+### Backend (`apps/api/.env`)
+```
+SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
+SUPABASE_JWT_SECRET
+ANTHROPIC_API_KEY
+MAPBOX_TOKEN
+STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET
+ENVIRONMENT=development
+```
+
+## Key decisions (never revert these)
+
+- **pnpm workspaces** — single repo, no Turborepo
+- **Soft deletes** — never hard-delete targets
+- **Score versioning** — `model_version` column on `target_scores`
+- **JWT tenant injection** — tenant_id in JWT via Supabase hook, not app-level
+- **Client-side financial calculation** — roll-up financials computed client-side for live preview, server-side for persistence
+- **No second DnD library** — @dnd-kit only, already installed
+- **Synchronous embed/geocode endpoints** — not background tasks (Fly.io free tier sleeps)
+- **Monochrome logo** — white brackets on dark background, never add color accents to the mark
+
+## Current navigation structure
+
+```
+/dashboard      — overview stats
+/discovery      — target list (table + map view)
+/discovery/[id] — target detail (scores, rationale, similar, chat)
+/clusters       — AI-named target clusters
+/rollup         — roll-up scenario list
+/rollup/[id]    — split-panel roll-up modeler
+/rollup/compare — side-by-side scenario comparison
+/pipeline       — deal kanban (Watchlist → Contacted → NDA → LOI → Closed)
+/settings       — account + billing
+/login          — auth
+/signup         — auth
+/onboarding     — fund name setup (post-signup)
+```
+
+## Known issues / backlog
+
+- Pires Metalurgia Lda fails to embed consistently (transient API timeout — benign)
+- Stripe price IDs not configured (billing UI exists, checkout disabled until go-live)
+- Map coordinate dictionary covers major EU cities only — full geocoding via API for new imports
+- IC memo date format bug — shows wrong month (cosmetic, low priority)
+- No automated test suite yet
+
+## What NOT to do
+
+- Never install a second drag-and-drop library
+- Never use `alert()` or `confirm()` — use sonner toasts and inline confirm states
+- Never hard-delete targets — always soft delete
+- Never add `rounded-lg` or larger — institutional design uses `rounded-sm`
+- Never add shadows or gradients
+- Never modify existing migrations — always create a new numbered migration file
+- Never bypass RLS by using service role key in frontend code
+- Never store the Supabase service role key in frontend env vars
