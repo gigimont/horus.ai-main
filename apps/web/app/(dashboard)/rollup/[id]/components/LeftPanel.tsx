@@ -20,7 +20,7 @@ interface Props {
 }
 
 export default function LeftPanel({
-  targets, scenarioId, onAddTarget, onRemoveTarget, onUpdateAssumption, onReorder, onApplySequence
+  targets, onAddTarget, onRemoveTarget, onUpdateAssumption, onReorder, onApplySequence
 }: Props) {
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<{id: string; name: string; city?: string | null; country?: string | null}[]>([])
