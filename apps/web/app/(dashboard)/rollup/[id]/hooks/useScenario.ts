@@ -48,7 +48,7 @@ export function useScenario(id: string) {
     setTargets(prev => {
       const next = prev.map(t =>
         t.target_id === targetId
-          ? { ...t, [field]: value, ...(field === 'ebitda_margin_pct' ? { ebitda_margin_source: 'manual' } : {}) }
+          ? { ...t, [field]: value, ...(field === 'ebitda_margin_pct' ? { ebitda_margin_source: 'manual' as const } : {}) }
           : t
       )
       setFinancials(computeFinancials(next))
