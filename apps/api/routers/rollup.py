@@ -4,6 +4,7 @@ from dependencies import get_db, get_tenant_id
 from supabase import Client
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime, timezone
 import logging, io
 from services.rollup_service import compute_financials, estimate_ebitda_margin, suggest_sequence, generate_memo
 from reportlab.lib.pagesizes import A4
@@ -112,7 +113,7 @@ async def update_scenario(
     data = {k: v for k, v in payload.model_dump().items() if v is not None}
     if not data:
         raise HTTPException(400, "No fields to update")
-    data["updated_at"] = "now()"
+    data["updated_at"] = datetime.now(timezone.utc).isoformat()
     res = db.table("rollup_scenarios").update(data).eq(
         "id", scenario_id).eq("tenant_id", tenant_id).execute()
     if not res.data:

@@ -141,7 +141,13 @@ suggested_order is 0-indexed. Include all {len(targets)} targets."""
         messages=[{"role": "user", "content": prompt}]
     )
     raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-    return json.loads(raw)
+    # Find the JSON array in the response
+    start = raw.find('[')
+    end = raw.rfind(']')
+    if start == -1 or end == -1:
+        logger.warning(f"Claude sequence response had no JSON array: {raw[:100]}")
+        return []
+    return json.loads(raw[start:end+1])
 
 
 async def generate_memo(scenario: dict, financials: dict) -> str:
