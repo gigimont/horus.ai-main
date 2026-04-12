@@ -147,9 +147,8 @@ async def embed_target(target_id: str, tenant_id: str) -> bool:
 
     try:
         embedding = await embed_text(text)
-        vector_str = "[" + ",".join(str(x) for x in embedding) + "]"
         supabase.table("targets").update({
-            "embedding": vector_str
+            "embedding": embedding
         }).eq("id", target_id).execute()
         logger.info(f"Embedded target: {target.get('name')}")
         return True

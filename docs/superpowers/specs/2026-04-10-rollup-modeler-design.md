@@ -43,6 +43,7 @@ id            uuid primary key default gen_random_uuid()
 tenant_id     uuid not null references tenants(id)
 name          text not null
 description   text
+status        text not null default 'draft'  -- 'draft' | 'active' | 'archived'
 created_by    uuid references users(id)
 updated_by    uuid references users(id)
 created_at    timestamptz default now()
@@ -159,6 +160,7 @@ New service: `apps/api/services/rollup_service.py`
 - No page-level data fetching — client-side, polling or optimistic updates
 
 **`/rollup/compare` — Comparison View (`page.tsx`, client component)**
+- Reads `?a=<id>&b=<id>` from query params; calls `GET /rollup/{id}/financials` for both scenario IDs in parallel
 - Two `/rollup/[id]` right-panel financial summaries rendered side-by-side
 - Read-only, no editing
 
@@ -166,7 +168,7 @@ New service: `apps/api/services/rollup_service.py`
 
 | Component | Responsibility |
 |-----------|---------------|
-| `LeftPanel.tsx` | Target search/add, draggable sequence list, summary bar |
+| `LeftPanel.tsx` | Target search/add, draggable sequence list (uses `@dnd-kit/core` + `@dnd-kit/sortable` — already installed), summary bar |
 | `TargetRow.tsx` | Single target in sequence — drag handle, name, assumption inputs, remove |
 | `AssumptionInputs.tsx` | Entry multiple, EBITDA margin (with AI/manual label), synergy %, revenue uplift %, debt %, integration cost, hold period |
 | `RightPanel.tsx` | Orchestrates right side — financials + timeline + synergy map + memo |
@@ -224,6 +226,6 @@ File: `supabase/migrations/009_rollup_scenarios.sql`
 - Operator can create a roll-up scenario with 3+ targets in under 5 minutes
 - Financial outputs update without page reload as assumptions change
 - Claude EBITDA estimate available within 3s of adding a target
-- IC memo generates in under 30s for a 5-target scenario
+- IC memo generates in under 60s for a 5-target scenario
 - Scenario persists across sessions and is visible to all tenant users
 - PDF memo downloadable and formatted consistently with existing reports

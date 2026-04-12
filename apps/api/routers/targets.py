@@ -211,11 +211,10 @@ async def score_target_route(
 
 @router.post("/embed/batch")
 async def embed_batch(
-    background_tasks: BackgroundTasks,
     tenant_id: str = Depends(get_tenant_id)
 ):
-    background_tasks.add_task(embed_all_targets, tenant_id)
-    return {"message": "Embedding started in background"}
+    result = await embed_all_targets(tenant_id)
+    return {"message": f"Embedded {result['success']} of {result['total']} targets", **result}
 
 
 @router.post("/{target_id}/embed")
