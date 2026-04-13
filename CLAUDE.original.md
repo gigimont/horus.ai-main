@@ -1,7 +1,7 @@
 # Horus AI — Claude Code Context
 
 ## What this is
-B2B SaaS for Search Fund operators. SME acquisition discovery, AI scoring, clustering, roll-up modeling, deal pipeline. Stack: Next.js 16 + FastAPI + Supabase + Claude API.
+B2B SaaS for Search Fund operators. SME acquisition target discovery, AI scoring, clustering, roll-up modeling, deal pipeline. Stack: Next.js 16 + FastAPI + Supabase + Claude API.
 
 ## Run locally
 ```bash
@@ -32,8 +32,8 @@ cd apps/api && pytest tests/ -v                    # Python (pytest)
 
 - `proxy.ts` not `middleware.ts` — Next.js 16 renamed it
 - Soft delete only — never hard-delete targets (`deleted_at` pattern)
-- `@dnd-kit` only — never install second drag-and-drop lib
-- Synchronous endpoints for embed/geocode — background tasks killed by Fly.io free tier sleep
+- `@dnd-kit` only — never install a second drag-and-drop library
+- Synchronous endpoints for embed/geocode — background tasks get killed by Fly.io free tier sleep
 - All RLS uses `get_tenant_id()` helper — never bypass with service role key in frontend
 - New migrations only — never modify existing migration files
 - `rounded-sm` everywhere — institutional design, never `rounded-lg` or larger
