@@ -158,6 +158,19 @@ export const api = {
     delete: (resultId: string) =>
       apiFetch<void>(`/scenarios/${resultId}`, { method: 'DELETE' }),
   },
+  network: {
+    analyse: (scenarioId: string) =>
+      apiFetch<{ edges_created: number; target_count: number }>(
+        `/network/analyse/${scenarioId}`,
+        { method: 'POST' }
+      ),
+    get: (scenarioId: string) =>
+      apiFetch<NetworkGraph>(`/network/${scenarioId}`),
+    stats: (scenarioId: string) =>
+      apiFetch<NetworkStats>(`/network/${scenarioId}/stats`),
+    clear: (scenarioId: string) =>
+      apiFetch<void>(`/network/${scenarioId}`, { method: 'DELETE' }),
+  },
 }
 
 export interface Filters {
@@ -350,6 +363,31 @@ export interface ScenarioResult {
   acquisition_window_effect: string
   model_version: string
   run_at: string
+}
+
+export interface NetworkEdge {
+  id: string
+  scenario_id: string
+  source_target_id: string
+  dest_target_id: string
+  edge_type: 'supply_chain' | 'geographic' | 'industry' | 'customer_overlap' | 'vendor_overlap'
+  strength: number
+  description: string
+  metadata: Record<string, unknown>
+  created_at: string
+}
+
+export interface NetworkStats {
+  total_edges: number
+  avg_strength: number
+  edge_type_distribution: Record<string, number>
+  most_connected: { target_id: string; name: string; edge_count: number } | null
+  isolated_targets: string[]
+}
+
+export interface NetworkGraph {
+  nodes: Target[]
+  edges: NetworkEdge[]
 }
 
 export async function streamChat(
