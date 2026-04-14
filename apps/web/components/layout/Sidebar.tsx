@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Search, Kanban, Settings, Network, TrendingUp } from 'lucide-react'
+import { LayoutDashboard, Search, Kanban, Settings, Network, TrendingUp, Share2 } from 'lucide-react'
 import LogoMark from '@/components/shared/LogoMark'
 
 const nav = [
@@ -12,6 +12,7 @@ const nav = [
   { href: '/discovery',   label: 'Discovery',  icon: Search },
   { href: '/clusters',    label: 'Clusters',   icon: Network },
   { href: '/rollup',      label: 'Roll-up',    icon: TrendingUp },
+  { href: '/network',     label: 'Network',    icon: Share2 },
   { href: '/pipeline',    label: 'Pipeline',   icon: Kanban },
   { href: '/settings',    label: 'Settings',   icon: Settings },
 ]
