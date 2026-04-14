@@ -139,6 +139,25 @@ export const api = {
       apiFetch<{ memo: string }>(`/rollup/${id}/memo`, { method: 'POST' }),
     memoPdfUrl: (id: string) => `${API_URL}/rollup/${id}/memo/pdf`,
   },
+  scenarios: {
+    run: (
+      targetId: string,
+      params: { scenario_type: string; severity: number; description: string },
+      rollupScenarioId?: string
+    ) =>
+      apiFetch<ScenarioResult>('/scenarios/run', {
+        method: 'POST',
+        body: JSON.stringify({
+          target_id: targetId,
+          ...params,
+          ...(rollupScenarioId ? { rollup_scenario_id: rollupScenarioId } : {}),
+        }),
+      }),
+    forTarget: (targetId: string) =>
+      apiFetch<{ data: ScenarioResult[] }>(`/scenarios/target/${targetId}`),
+    delete: (resultId: string) =>
+      apiFetch<void>(`/scenarios/${resultId}`, { method: 'DELETE' }),
+  },
 }
 
 export interface Filters {
@@ -300,6 +319,37 @@ export interface CombinedFinancials {
 export interface RollupFinancials {
   targets: TargetFinancials[]
   combined: CombinedFinancials
+}
+
+export interface ScoreDeltas {
+  overall_delta: number
+  transition_delta: number
+  value_delta: number
+  market_delta: number
+  financial_delta: number
+}
+
+export interface ScenarioResult {
+  id: string
+  tenant_id: string
+  target_id: string
+  rollup_scenario_id: string | null
+  scenario_type: 'macro_shock' | 'industry_shift' | 'succession_trigger'
+  severity: number
+  description: string
+  score_before: {
+    overall_score: number | null
+    transition_score: number | null
+    value_score: number | null
+    market_score: number | null
+    financial_score: number | null
+    scored_at: string | null
+  }
+  score_deltas: ScoreDeltas
+  implications: string[]
+  acquisition_window_effect: string
+  model_version: string
+  run_at: string
 }
 
 export async function streamChat(
