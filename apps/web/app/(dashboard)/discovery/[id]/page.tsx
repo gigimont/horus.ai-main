@@ -8,6 +8,7 @@ import ScoreBadge from '@/components/shared/ScoreBadge'
 import ScoreGauge from '../components/ScoreGauge'
 import CopilotChat from '../components/CopilotChat'
 import AddToPipelineButton from '../components/AddToPipelineButton'
+import ScenarioPanel from './components/ScenarioPanel'
 import { createClient } from '@/lib/supabase/server'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
@@ -185,6 +186,23 @@ export default async function TargetDetailPage({ params }: { params: Promise<{ i
               </CardContent>
             </Card>
           )}
+
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Scenario analysis</CardTitle></CardHeader>
+            <CardContent>
+              <ScenarioPanel
+                targetId={id}
+                currentScores={{
+                  overall_score:    score?.overall_score    ?? null,
+                  transition_score: score?.transition_score ?? null,
+                  value_score:      score?.value_score      ?? null,
+                  market_score:     score?.market_score     ?? null,
+                  financial_score:  score?.financial_score  ?? null,
+                  scored_at:        score?.scored_at        ?? null,
+                }}
+              />
+            </CardContent>
+          </Card>
         </div>
 
         <div>
