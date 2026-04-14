@@ -20,7 +20,7 @@ interface Props {
 }
 
 export default function LeftPanel({
-  targets, onAddTarget, onRemoveTarget, onUpdateAssumption, onReorder, onApplySequence
+  targets, scenarioId, onAddTarget, onRemoveTarget, onUpdateAssumption, onReorder, onApplySequence
 }: Props) {
   const [search, setSearch] = useState('')
   const [results, setResults] = useState<{id: string; name: string; city?: string | null; country?: string | null}[]>([])
@@ -147,6 +147,7 @@ export default function LeftPanel({
                   key={t.target_id}
                   target={t}
                   index={i}
+                  rollupScenarioId={scenarioId}
                   onChange={(field, value) => onUpdateAssumption(t.target_id, field, value)}
                   onRemove={() => onRemoveTarget(t.target_id)}
                 />

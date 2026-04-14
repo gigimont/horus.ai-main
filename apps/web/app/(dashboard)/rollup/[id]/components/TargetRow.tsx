@@ -7,16 +7,19 @@ import { RollupScenarioTarget } from '@/lib/api/client'
 import AssumptionInputs from './AssumptionInputs'
 import { GripVertical, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import ScenarioPanel from '@/app/(dashboard)/discovery/[id]/components/ScenarioPanel'
 
 interface Props {
   target: RollupScenarioTarget
   index: number
+  rollupScenarioId: string
   onChange: (field: keyof RollupScenarioTarget, value: number) => void
   onRemove: () => void
 }
 
-export default function TargetRow({ target, index, onChange, onRemove }: Props) {
+export default function TargetRow({ target, index, rollupScenarioId, onChange, onRemove }: Props) {
   const [expanded, setExpanded] = useState(false)
+  const [scenarioOpen, setScenarioOpen] = useState(false)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: target.target_id })
 
@@ -71,8 +74,33 @@ export default function TargetRow({ target, index, onChange, onRemove }: Props) 
       </div>
 
       {expanded && (
-        <div className="px-3 pb-2 border-t">
+        <div className="px-3 pb-3 border-t space-y-3">
           <AssumptionInputs target={target} onChange={onChange} />
+          <div className="border-t pt-2">
+            <button
+              type="button"
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+              onClick={() => setScenarioOpen(v => !v)}
+            >
+              ⚡ {scenarioOpen ? 'Hide scenario analysis' : 'Scenario analysis'}
+            </button>
+            {scenarioOpen && (
+              <div className="mt-2">
+                <ScenarioPanel
+                  targetId={target.target_id}
+                  rollupScenarioId={rollupScenarioId}
+                  currentScores={{
+                    overall_score:    target.targets?.target_scores?.[0]?.overall_score    ?? null,
+                    transition_score: target.targets?.target_scores?.[0]?.transition_score ?? null,
+                    value_score:      null,
+                    market_score:     null,
+                    financial_score:  target.targets?.target_scores?.[0]?.financial_score  ?? null,
+                    scored_at:        null,
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
