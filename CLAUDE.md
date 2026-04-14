@@ -48,3 +48,104 @@ cd apps/api && pytest tests/ -v                    # Python (pytest)
 - Pires Metalurgia Lda embedding fails transiently — benign
 - IC memo shows wrong month in date — cosmetic
 - Stripe price IDs empty — intentional until go-live
+
+---
+
+## Project structure reference
+
+### Backend (`apps/api/`)
+- `main.py` — FastAPI app entry point; registers all routers, CORS config
+- `config.py` — Pydantic settings (SUPABASE_URL, ANTHROPIC_API_KEY, STRIPE keys, MAPBOX_TOKEN)
+- `dependencies.py` — `get_db()` (Supabase client), `get_tenant_id()` (JWT claim extraction)
+- `db/supabase.py` — shared Supabase client singleton
+
+**Routers (`routers/`):**
+- `targets.py` — CRUD, bulk CSV import, geocode, embed, similar targets
+- `scoring.py` — batch AI scoring, status polling
+- `clusters.py` — list clusters, refresh (AI rebuild), status
+- `chat.py` — streaming copilot chat (SSE)
+- `exports.py` — CSV export, PDF target report
+- `pipeline.py` — kanban deal pipeline CRUD
+- `billing.py` — Stripe webhook, subscription management
+- `rollup.py` — roll-up modeler: scenarios CRUD, targets, reorder, financials, EBITDA estimate, sequence, IC memo + PDF
+- `scenarios.py` — what-if scenario engine: run, list history, delete
+
+**Services (`services/`):**
+- `claude_service.py` — Anthropic client singleton + target scoring prompts (4-dimension JSON)
+- `scoring_service.py` — orchestrates scoring: fetch target → Claude → upsert target_scores
+- `clustering_service.py` — AI cluster building using pgvector embeddings + Claude labeling
+- `embedding_service.py` — batch pgvector embedding via Claude
+- `geocoding_service.py` — Mapbox geocoding for target lat/lng
+- `rollup_service.py` — `compute_financials()`, `estimate_ebitda_margin()`, `suggest_sequence()`, `generate_memo()`
+- `scenario_service.py` — `run_scenario()`: Claude what-if analysis → weighted score deltas
+
+### Frontend (`apps/web/`)
+
+**Auth routes (`app/(auth)/`):**
+- `login/page.tsx` — email/password login
+- `signup/page.tsx` — new account registration
+- `onboarding/page.tsx` — post-signup onboarding flow
+
+**Dashboard routes (`app/(dashboard)/`):**
+- `dashboard/page.tsx` — home dashboard
+- `discovery/page.tsx` — target list (table + map toggle), filters, score-all button
+- `discovery/[id]/page.tsx` — target detail: scores, AI analysis, similar targets, scenario panel, copilot chat
+- `clusters/page.tsx` — AI cluster view, "Build roll-up →" action
+- `rollup/page.tsx` — list of roll-up scenarios
+- `rollup/[id]/page.tsx` — roll-up modeler: split-panel drag-and-drop editor + live financials
+- `rollup/compare/page.tsx` — side-by-side scenario comparison
+- `pipeline/page.tsx` — kanban deal tracker (Watchlist → Contacted → NDA → LOI → Closed)
+- `settings/page.tsx` — account management, Stripe billing
+
+**Components (`app/(dashboard)/discovery/components/`):**
+`AddToPipelineButton`, `CopilotChat`, `FilterPanel`, `ImportButton`, `MapView`, `ScoreAllButton`, `ScoreGauge`, `TargetTable`
+
+**Components (`app/(dashboard)/discovery/[id]/components/`):**
+`ScenarioPanel` — what-if scenario form + delta cards + history
+
+**Components (`app/(dashboard)/rollup/[id]/components/`):**
+`LeftPanel` (drag-and-drop target list), `RightPanel` (financials + timeline + memo), `TargetRow` (sortable row + assumptions + scenario toggle), `AssumptionInputs`, `FinancialSummary`, `AcquisitionTimeline`, `SynergyMap`, `IcMemo`
+
+**Rollup client-side logic:**
+- `rollup/[id]/hooks/useScenario.ts` — scenario state management
+- `rollup/[id]/lib/computeFinancials.ts` — pure TS financial model (mirrors Python)
+
+**Shared components (`components/`):**
+- `shared/ScoreBadge.tsx` — score pill badge
+- `shared/LogoMark.tsx` — logo
+- `shared/ErrorBoundary.tsx` — error boundary
+- `ui/` — shadcn/ui primitives (button, badge, card, input, etc.)
+
+**Lib (`lib/`):**
+- `api/client.ts` — typed API client (`api.targets`, `api.rollup`, `api.scenarios`, etc.) + all TypeScript interfaces
+- `supabase/client.ts` — browser Supabase client
+- `supabase/server.ts` — server-side Supabase client (for server components)
+- `utils.ts` — `cn()` classname helper
+
+### Supabase (`supabase/migrations/`)
+- `001_initial_schema.sql` — tenants, targets, users base schema
+- `002_rls_policies.sql` — row-level security policies
+- `003_scores_unique_constraint.sql` — target_scores unique on (target_id, model_version)
+- `004_pipeline_rls.sql` — pipeline_items RLS
+- `005_accent_insensitive_search.sql` — unaccented text search index
+- `006_auth_hooks.sql` — Supabase auth hook to inject tenant_id into JWT
+- `007_stripe_customer.sql` — stripe_customers table
+- `008_target_coordinates.sql` — lat/lng columns + PostGIS index on targets
+- `009_rollup_scenarios.sql` — rollup_scenarios + rollup_scenario_targets tables
+- `010_rollup_rls_fix.sql` — RLS fix for rollup tables
+- `011_scenario_results.sql` — scenario_results table (what-if engine)
+
+**Key tables:** `tenants`, `targets`, `target_scores`, `pipeline_items`, `clusters`, `cluster_members`, `rollup_scenarios`, `rollup_scenario_targets`, `scenario_results`, `stripe_customers`
+
+### Infrastructure
+- Frontend: Vercel (auto-deploys on `git push` to main)
+- Backend: Fly.io (`searchfund-api.fly.dev`) — deploy with `cd apps/api && fly deploy`
+- DB: Supabase hosted PostgreSQL (`ymtxkrhejxzsubhhrpxi.supabase.co`)
+- Git: `git write-tree → git commit-tree → git update-ref` (no regular `git commit` — git-lfs hooks hang)
+
+---
+
+## Design skill
+
+The `ui-ux-pro-max-skill` is installed for UI/UX sessions. When a session involves visual/design changes, read its SKILL.md before making any frontend modifications.
+Location: `~/.claude/plugins/cache/ui-ux-pro-max-skill/ui-ux-pro-max/2.5.0/.claude/skills/ui-ux-pro-max/SKILL.md`
