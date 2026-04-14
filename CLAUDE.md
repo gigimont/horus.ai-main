@@ -69,6 +69,7 @@ cd apps/api && pytest tests/ -v                    # Python (pytest)
 - `billing.py` — Stripe webhook, subscription management
 - `rollup.py` — roll-up modeler: scenarios CRUD, targets, reorder, financials, EBITDA estimate, sequence, IC memo + PDF
 - `scenarios.py` — what-if scenario engine: run, list history, delete
+- `network.py` — network edges: analyse (AI pairwise), get graph, stats, clear
 
 **Services (`services/`):**
 - `claude_service.py` — Anthropic client singleton + target scoring prompts (4-dimension JSON)
@@ -78,6 +79,7 @@ cd apps/api && pytest tests/ -v                    # Python (pytest)
 - `geocoding_service.py` — Mapbox geocoding for target lat/lng
 - `rollup_service.py` — `compute_financials()`, `estimate_ebitda_margin()`, `suggest_sequence()`, `generate_memo()`
 - `scenario_service.py` — `run_scenario()`: Claude what-if analysis → weighted score deltas
+- `network_service.py` — `analyse_network()`: Claude pairwise target analysis → edge list (itertools.combinations, batch=10)
 
 ### Frontend (`apps/web/`)
 
@@ -94,6 +96,8 @@ cd apps/api && pytest tests/ -v                    # Python (pytest)
 - `rollup/page.tsx` — list of roll-up scenarios
 - `rollup/[id]/page.tsx` — roll-up modeler: split-panel drag-and-drop editor + live financials
 - `rollup/compare/page.tsx` — side-by-side scenario comparison
+- `network/page.tsx` — force-directed D3 graph: scenario selector, edge type filters, strength slider, stats panel
+- `network/components/NetworkGraph.tsx` — D3 force simulation (client-only, SSR-safe via dynamic import); draggable nodes, zoom/pan, tooltips
 - `pipeline/page.tsx` — kanban deal tracker (Watchlist → Contacted → NDA → LOI → Closed)
 - `settings/page.tsx` — account management, Stripe billing
 
@@ -117,7 +121,7 @@ cd apps/api && pytest tests/ -v                    # Python (pytest)
 - `ui/` — shadcn/ui primitives (button, badge, card, input, etc.)
 
 **Lib (`lib/`):**
-- `api/client.ts` — typed API client (`api.targets`, `api.rollup`, `api.scenarios`, etc.) + all TypeScript interfaces
+- `api/client.ts` — typed API client (`api.targets`, `api.rollup`, `api.scenarios`, `api.network`, etc.) + all TypeScript interfaces (incl. `NetworkEdge`, `NetworkStats`, `NetworkGraph`)
 - `supabase/client.ts` — browser Supabase client
 - `supabase/server.ts` — server-side Supabase client (for server components)
 - `utils.ts` — `cn()` classname helper
@@ -134,14 +138,15 @@ cd apps/api && pytest tests/ -v                    # Python (pytest)
 - `009_rollup_scenarios.sql` — rollup_scenarios + rollup_scenario_targets tables
 - `010_rollup_rls_fix.sql` — RLS fix for rollup tables
 - `011_scenario_results.sql` — scenario_results table (what-if engine)
+- `012_network_edges.sql` — network_edges table: scenario_id FK → rollup_scenarios, source/dest target FKs, edge_type enum, strength float, RLS via get_tenant_id()
 
-**Key tables:** `tenants`, `targets`, `target_scores`, `pipeline_items`, `clusters`, `cluster_members`, `rollup_scenarios`, `rollup_scenario_targets`, `scenario_results`, `stripe_customers`
+**Key tables:** `tenants`, `targets`, `target_scores`, `pipeline_items`, `clusters`, `cluster_members`, `rollup_scenarios`, `rollup_scenario_targets`, `scenario_results`, `stripe_customers`, `network_edges`
 
 ### Infrastructure
 - Frontend: Vercel (auto-deploys on `git push` to main)
 - Backend: Fly.io (`searchfund-api.fly.dev`) — deploy with `cd apps/api && fly deploy`
 - DB: Supabase hosted PostgreSQL (`ymtxkrhejxzsubhhrpxi.supabase.co`)
-- Git: `git write-tree → git commit-tree → git update-ref` (no regular `git commit` — git-lfs hooks hang)
+- Git: `git write-tree → git commit-tree → git update-ref` (no regular `git commit` — git-lfs hooks hang). **Always `git add <files>` before `write-tree`** — write-tree snapshots the index only, not the working tree.
 
 ---
 
