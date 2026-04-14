@@ -30,7 +30,7 @@ async def analyse_scenario_network(
 
     targets_res = (
         db.table("rollup_scenario_targets")
-        .select("targets(id, name, industry_label, city, country, description, employee_count, revenue_eur)")
+        .select("targets(id, name, industry_label, city, country, employee_count, revenue_eur)")
         .eq("scenario_id", scenario_id)
         .execute()
     )
