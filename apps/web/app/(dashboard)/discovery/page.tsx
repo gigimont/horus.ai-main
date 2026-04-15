@@ -7,7 +7,7 @@ import ImportButton from './components/ImportButton'
 import ScoreAllButton from './components/ScoreAllButton'
 import MapView from './components/MapView'
 import { Skeleton } from '@/components/ui/skeleton'
-import { List, Map, Download, MapPin, Sparkles } from 'lucide-react'
+import { List, Map, Download, MapPin, Sparkles, Database } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -18,6 +18,7 @@ export default function DiscoveryPage() {
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const [view, setView] = useState<'table' | 'map'>('table')
+  const [enrichAllLoading, setEnrichAllLoading] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -61,6 +62,23 @@ export default function DiscoveryPage() {
       }
     } catch {
       toast.error('Geocoding failed', { id: toastId })
+    }
+  }
+
+  const handleEnrichAll = async () => {
+    setEnrichAllLoading(true)
+    const toastId = toast.loading('Enriching all targets…')
+    try {
+      const res = await api.enrichment.enrichAll()
+      toast.success(
+        `Enriched ${res.succeeded ?? res.total_queued} of ${res.total_queued} targets`,
+        { id: toastId }
+      )
+      load()
+    } catch {
+      toast.error('Enrich all failed', { id: toastId })
+    } finally {
+      setEnrichAllLoading(false)
     }
   }
 
@@ -120,6 +138,14 @@ export default function DiscoveryPage() {
             Embed
           </button>
           <ScoreAllButton onComplete={load} />
+          <button
+            onClick={handleEnrichAll}
+            disabled={enrichAllLoading}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors disabled:opacity-50 cursor-pointer"
+          >
+            <Database className="h-3.5 w-3.5" />
+            {enrichAllLoading ? 'Enriching…' : 'Enrich all'}
+          </button>
         </div>
       </div>
 

@@ -17,6 +17,21 @@ function fmt(n: number | null | undefined, prefix = '') {
   return prefix + n.toLocaleString('en-EU')
 }
 
+function EnrichmentStatusBadge({ status }: { status: string | null | undefined }) {
+  const map: Record<string, { label: string; className: string }> = {
+    enriched: { label: 'Enriched', className: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+    partial:  { label: 'Partial',  className: 'text-amber-700 bg-amber-50 border-amber-200' },
+    failed:   { label: 'Failed',   className: 'text-red-700 bg-red-50 border-red-200' },
+    none:     { label: 'None',     className: 'text-muted-foreground bg-muted border-border' },
+  }
+  const cfg = map[status ?? 'none'] ?? map['none']
+  return (
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs border ${cfg.className}`}>
+      {cfg.label}
+    </span>
+  )
+}
+
 export default function TargetTable({ targets, onDelete }: Props) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
@@ -39,6 +54,7 @@ export default function TargetTable({ targets, onDelete }: Props) {
             <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Revenue</th>
             <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Employees</th>
             <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Owner age</th>
+            <th className="text-center px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Enrichment</th>
             <th className="text-center px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Score</th>
             <th className="px-4 py-2.5 w-8" />
           </tr>
@@ -76,6 +92,9 @@ export default function TargetTable({ targets, onDelete }: Props) {
                 </td>
                 <td className="px-4 py-2.5 text-right tabular-nums text-xs text-muted-foreground">
                   {t.owner_age_estimate ?? '—'}
+                </td>
+                <td className="px-4 py-2.5 text-center">
+                  <EnrichmentStatusBadge status={t.enrichment_status} />
                 </td>
                 <td className="px-4 py-2.5 text-center">
                   <ScoreBadge score={score} />
