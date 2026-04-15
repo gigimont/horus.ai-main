@@ -1,6 +1,7 @@
 """
 OpenCorporates enrichment provider.
-Free tier: 500 req/month, no API key required for basic search.
+Free tier: 500 req/month — API token required (register at opencorporates.com/users/new).
+Set OPENCORPORATES_API_TOKEN in Fly.io secrets or .env.
 API: https://api.opencorporates.com/v0.4
 """
 import httpx
@@ -47,19 +48,27 @@ class OpenCorporatesProvider(EnrichmentProvider):
         self.client = httpx.AsyncClient(timeout=15.0)
 
     async def search(self, target: dict) -> Optional[dict]:
+        if not self.api_token:
+            # Token required — free tier no longer allows unauthenticated requests.
+            # Register at opencorporates.com/users/new and set OPENCORPORATES_API_TOKEN.
+            return None
+
         params: dict = {
             "q": target.get("name", ""),
             "country_code": self._country_to_code(target.get("country", "")),
             "per_page": 5,
+            "api_token": self.api_token,
         }
-        if self.api_token:
-            params["api_token"] = self.api_token
 
         try:
             resp = await self.client.get(
                 f"{OPENCORPORATES_API}/companies/search",
                 params=params,
             )
+            if resp.status_code == 401:
+                body = resp.json()
+                msg = body.get("error", {}).get("message", "Unauthorised")
+                raise Exception(f"OpenCorporates auth failed: {msg}")
             resp.raise_for_status()
             data = resp.json()
         except Exception as e:

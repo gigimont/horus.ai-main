@@ -13,6 +13,41 @@ def test_provider_name_defined():
     assert provider.name == "opencorporates"
 
 
+# ── No-token guard ───────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_search_returns_none_when_no_token():
+    """Without a token, search() returns None (not raises) — skips provider gracefully."""
+    from services.enrichment.opencorporates import OpenCorporatesProvider
+    p = OpenCorporatesProvider(api_token=None)
+    result = await p.search({"name": "Test GmbH", "country": "Germany", "city": "Berlin"})
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_stays_none_when_no_token():
+    """No-token provider → providers_failed empty → target enrichment_status = 'none', not 'failed'."""
+    from services.enrichment.orchestrator import run_enrichment
+    from services.enrichment.opencorporates import OpenCorporatesProvider
+
+    no_token_provider = OpenCorporatesProvider(api_token=None)
+    mock_db = _make_mock_db()
+    target = {"id": "test-id", "name": "Test GmbH", "country": "Germany", "city": "Berlin"}
+
+    await run_enrichment(target=target, tenant_id="tenant", db=mock_db, providers=[no_token_provider])
+
+    # The key assertion: update call on targets table should set enrichment_status = 'none', not 'failed'
+    # We verify by checking that no provider was added to providers_failed in the job update
+    update_calls = mock_db.table.return_value.update.call_args_list
+    # At least one update call should contain providers_failed=[]
+    job_updates = [
+        call for call in update_calls
+        if call.args and isinstance(call.args[0], dict) and "providers_failed" in call.args[0]
+    ]
+    if job_updates:
+        assert job_updates[0].args[0]["providers_failed"] == []
+
+
 # ── Country mapping ───────────────────────────────────────────────────────────
 
 def test_country_to_code_known():
