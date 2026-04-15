@@ -171,6 +171,27 @@ export const api = {
     clear: (scenarioId: string) =>
       apiFetch<void>(`/network/${scenarioId}`, { method: 'DELETE' }),
   },
+  enrichment: {
+    enrich: (targetId: string, force = false) =>
+      apiFetch<EnrichmentJob>(
+        `/enrichment/enrich/${targetId}${force ? '?force=true' : ''}`,
+        { method: 'POST' }
+      ),
+    enrichBatch: (targetIds: string[], force = false) =>
+      apiFetch<BatchEnrichmentResult>(
+        `/enrichment/enrich-batch${force ? '?force=true' : ''}`,
+        { method: 'POST', body: JSON.stringify({ target_ids: targetIds }) }
+      ),
+    enrichAll: () =>
+      apiFetch<{ total_queued: number; succeeded: number; failed: number; started: boolean }>(
+        '/enrichment/enrich-all',
+        { method: 'POST' }
+      ),
+    jobs: (targetId: string) =>
+      apiFetch<{ data: EnrichmentJob[] }>(`/enrichment/jobs/${targetId}`),
+    stats: () =>
+      apiFetch<EnrichmentStats>('/enrichment/stats'),
+  },
 }
 
 export interface Filters {
@@ -190,6 +211,14 @@ export interface TargetScore {
   rationale: string
   key_signals: string[]
   scored_at: string
+}
+
+export interface DirectorRole {
+  name: string
+  role: string
+  start_date: string | null
+  end_date: string | null
+  status: 'active' | 'inactive'
 }
 
 export interface Target {
@@ -213,6 +242,62 @@ export interface Target {
   created_at: string
   updated_at: string
   target_scores: TargetScore[]
+  // Enrichment fields
+  enrichment_status: 'none' | 'pending' | 'enriched' | 'partial' | 'failed' | null
+  last_enriched_at: string | null
+  enrichment_data: Record<string, unknown> | null
+  legal_form: string | null
+  share_capital: string | null
+  directors: string[] | null
+  director_roles: DirectorRole[] | null
+  registration_number: string | null
+  registration_authority: string | null
+  opencorporates_url: string | null
+  data_sources: string[] | null
+}
+
+export interface EnrichmentSource {
+  id: string
+  job_id: string
+  provider: string
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped'
+  confidence: number
+  extracted_data: Record<string, unknown>
+  error_message: string | null
+  started_at: string | null
+  completed_at: string | null
+}
+
+export interface EnrichmentJob {
+  id: string
+  target_id: string
+  status: 'pending' | 'running' | 'completed' | 'partial' | 'failed'
+  providers_completed: string[]
+  providers_failed: string[]
+  data_enriched: Record<string, unknown>
+  error_message: string | null
+  created_at: string
+  completed_at: string | null
+  enrichment_sources?: EnrichmentSource[]
+}
+
+export interface BatchEnrichmentResult {
+  total: number
+  succeeded: number
+  failed: number
+  skipped: number
+  results: EnrichmentJob[]
+}
+
+export interface EnrichmentStats {
+  total_enriched: number
+  total_partial: number
+  total_pending: number
+  total_failed: number
+  total_none: number
+  total_targets: number
+  providers_used: Record<string, number>
+  last_enrichment_at: string | null
 }
 
 export interface PipelineEntry {
