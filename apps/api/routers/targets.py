@@ -7,6 +7,7 @@ from supabase import Client
 from services.scoring_service import score_single_target
 from services.geocoding_service import geocode_target, geocode_all_ungeocode
 from services.embedding_service import embed_target, embed_all_targets
+from services.enrichment.orchestrator import run_enrichment
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -74,6 +75,10 @@ async def create_target(
         raise HTTPException(status_code=400, detail="Failed to create target")
     created = result.data[0]
     background_tasks.add_task(geocode_target, created, db)
+    try:
+        await run_enrichment(target=created, tenant_id=tenant_id, db=db)
+    except Exception as e:
+        print(f"[enrichment] Auto-enrich failed for {created['id']}: {e}")
     return created
 
 
@@ -166,6 +171,16 @@ async def bulk_import(
 
     result = db.table("targets").insert(rows).execute()
     background_tasks.add_task(geocode_all_ungeocode, tenant_id, db)
+
+    # Auto-enrich each imported target (1s delay for rate limiting)
+    import asyncio
+    for imported_target in result.data:
+        try:
+            await run_enrichment(target=imported_target, tenant_id=tenant_id, db=db)
+        except Exception as e:
+            print(f"[enrichment] Auto-enrich failed for {imported_target['id']}: {e}")
+        await asyncio.sleep(1)
+
     return {"inserted": len(result.data), "targets": result.data}
 
 
