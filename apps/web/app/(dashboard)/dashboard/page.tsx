@@ -1,16 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Building2, TrendingUp, Clock, Target } from 'lucide-react'
+import { Building2, TrendingUp, Clock, Target, Database } from 'lucide-react'
 
 async function getStats() {
   const supabase = await createClient()
   const DEMO_TENANT = '00000000-0000-0000-0000-000000000001'
 
-  const [targets, scores] = await Promise.all([
+  const [targets, scores, enriched] = await Promise.all([
     supabase.from('targets').select('id, created_at', { count: 'exact' })
       .eq('tenant_id', DEMO_TENANT).is('deleted_at', null),
     supabase.from('target_scores').select('overall_score, transition_score')
       .eq('tenant_id', DEMO_TENANT),
+    supabase.from('targets').select('id', { count: 'exact' })
+      .eq('tenant_id', DEMO_TENANT).is('deleted_at', null).eq('enrichment_status', 'enriched'),
   ])
 
   const total = targets.count ?? 0
@@ -20,7 +22,8 @@ async function getStats() {
     : '—'
   const highTransition = scoreList.filter(r => (r.transition_score ?? 0) >= 7).length
 
-  return { total, avgScore, highTransition, scored: scoreList.length }
+  const totalEnriched = enriched.count ?? 0
+  return { total, avgScore, highTransition, scored: scoreList.length, totalEnriched }
 }
 
 export default async function DashboardPage() {
@@ -53,6 +56,39 @@ export default async function DashboardPage() {
           </Card>
         ))}
       </div>
+      <Card className="border-border shadow-none">
+        <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-5">
+          <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Data enrichment</CardTitle>
+          <Database className="h-3.5 w-3.5 text-muted-foreground" />
+        </CardHeader>
+        <CardContent className="px-5 pb-4">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl font-semibold tabular-nums">{stats.totalEnriched}</span>
+            <span className="text-sm text-muted-foreground">/ {stats.total} targets enriched</span>
+          </div>
+          {stats.total > 0 && (
+            <div className="mt-2">
+              <div className="h-1.5 bg-muted rounded-sm overflow-hidden">
+                <div
+                  className="h-full bg-emerald-600 rounded-sm transition-all"
+                  style={{ width: `${Math.round((stats.totalEnriched / stats.total) * 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {Math.round((stats.totalEnriched / stats.total) * 100)}% enriched
+              </p>
+            </div>
+          )}
+          {stats.totalEnriched < stats.total && (
+            <a
+              href="/discovery"
+              className="inline-flex items-center gap-1 mt-2 text-xs text-emerald-700 hover:text-emerald-800 transition-colors cursor-pointer"
+            >
+              Enrich remaining →
+            </a>
+          )}
+        </CardContent>
+      </Card>
       <Card className="border-border shadow-none">
         <CardHeader className="pb-2 pt-4 px-5">
           <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Getting started</CardTitle>
