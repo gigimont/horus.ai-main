@@ -17,6 +17,22 @@ function fmt(n: number | null | undefined, prefix = '') {
   return prefix + n.toLocaleString('en-EU')
 }
 
+function SuccessionPill({ risk }: { risk: Target['succession_risk'] }) {
+  if (!risk || risk === 'unknown') return null
+  const map = {
+    high:   { label: 'High', className: 'bg-red-50 text-red-700 border border-red-200' },
+    medium: { label: 'Med',  className: 'bg-amber-50 text-amber-700 border border-amber-200' },
+    low:    { label: 'Low',  className: 'bg-emerald-50 text-emerald-700 border border-emerald-200' },
+  }
+  const cfg = map[risk]
+  if (!cfg) return null
+  return (
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-medium ${cfg.className}`}>
+      {cfg.label}
+    </span>
+  )
+}
+
 function EnrichmentStatusBadge({ status }: { status: string | null | undefined }) {
   const map: Record<string, { label: string; className: string }> = {
     enriched: { label: 'Enriched', className: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
@@ -55,6 +71,8 @@ export default function TargetTable({ targets, onDelete }: Props) {
             <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Employees</th>
             <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Owner age</th>
             <th className="text-center px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Enrichment</th>
+            <th className="text-center px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Succession</th>
+            <th className="text-center px-2 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide w-12">Fam</th>
             <th className="text-center px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Score</th>
             <th className="px-4 py-2.5 w-8" />
           </tr>
@@ -95,6 +113,16 @@ export default function TargetTable({ targets, onDelete }: Props) {
                 </td>
                 <td className="px-4 py-2.5 text-center">
                   <EnrichmentStatusBadge status={t.enrichment_status} />
+                </td>
+                <td className="px-4 py-2.5 text-center">
+                  <SuccessionPill risk={t.succession_risk} />
+                </td>
+                <td className="px-2 py-2.5 text-center w-12">
+                  {t.is_family_business === true && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-medium bg-violet-50 text-violet-700 border border-violet-200">
+                      Fam
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-2.5 text-center">
                   <ScoreBadge score={score} />
