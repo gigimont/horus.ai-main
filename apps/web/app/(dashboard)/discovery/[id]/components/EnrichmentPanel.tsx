@@ -4,6 +4,7 @@ import { api, Target, EnrichmentJob } from '@/lib/api/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import {
   Building2,
@@ -13,7 +14,13 @@ import {
   ChevronUp,
   RefreshCw,
   Network,
+  Users,
+  MapPin,
+  Briefcase,
+  AlertTriangle,
+  User,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface Props {
   target: Target
@@ -32,6 +39,26 @@ function StatusBadge({ status }: { status: Target['enrichment_status'] }) {
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium border ${cfg.className}`}>
       {cfg.label}
+    </span>
+  )
+}
+
+function SuccessionRiskBadge({ risk }: { risk: NonNullable<Target['succession_risk']> }) {
+  const map: Record<string, string> = {
+    high:    'bg-red-50 text-red-700 border-red-200',
+    medium:  'bg-amber-50 text-amber-700 border-amber-200',
+    low:     'bg-emerald-50 text-emerald-700 border-emerald-200',
+    unknown: 'bg-muted text-muted-foreground border-border',
+  }
+  const label: Record<string, string> = {
+    high: 'High risk',
+    medium: 'Medium risk',
+    low: 'Low risk',
+    unknown: 'Unknown',
+  }
+  return (
+    <span className={cn('inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium border', map[risk] ?? map['unknown'])}>
+      {label[risk] ?? risk}
     </span>
   )
 }
@@ -59,13 +86,49 @@ function DataRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
   )
 }
 
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pt-3 pb-1">
+      {children}
+    </p>
+  )
+}
+
+function formatSourceLabel(src: string): string {
+  if (src === 'web_enrichment') return 'Web'
+  return src.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
 export default function EnrichmentPanel({ target, onEnriched }: Props) {
   const [loading, setLoading] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [history, setHistory] = useState<EnrichmentJob[] | null>(null)
   const [historyLoading, setHistoryLoading] = useState(false)
+  const [websiteInput, setWebsiteInput] = useState('')
+  const [savingWebsite, setSavingWebsite] = useState(false)
 
   const hasData = target.enrichment_status === 'enriched' || target.enrichment_status === 'partial'
+  const showWebsiteInput =
+    !target.website &&
+    (target.enrichment_status === 'none' || target.enrichment_status == null)
+
+  async function handleSaveWebsiteAndEnrich() {
+    const url = websiteInput.trim()
+    if (!url) {
+      handleEnrich(false)
+      return
+    }
+    setSavingWebsite(true)
+    try {
+      await api.targets.update(target.id, { website: url })
+    } catch {
+      toast.error('Could not save website URL')
+      setSavingWebsite(false)
+      return
+    }
+    setSavingWebsite(false)
+    handleEnrich(false)
+  }
 
   async function handleEnrich(force = false) {
     setLoading(true)
@@ -105,6 +168,19 @@ export default function EnrichmentPanel({ target, onEnriched }: Props) {
     setHistoryOpen(prev => !prev)
   }
 
+  // Succession section visibility
+  const hasSuccession = !!target.succession_risk
+
+  // Management section
+  const hasManagement = !!(target.directors && target.directors.length > 0)
+
+  // Business profile section
+  const hasBusinessProfile = !!(
+    (target.products_services && target.products_services.length > 0) ||
+    (target.industries_served && target.industries_served.length > 0) ||
+    target.geographic_focus
+  )
+
   return (
     <Card>
       <CardHeader className="pb-3 pt-4 px-5">
@@ -139,13 +215,28 @@ export default function EnrichmentPanel({ target, onEnriched }: Props) {
         {!hasData && !loading && (
           <div className="text-center py-6">
             <p className="text-sm text-muted-foreground mb-3">No enrichment data yet</p>
+
+            {showWebsiteInput && (
+              <div className="mb-3 flex gap-2 items-center max-w-xs mx-auto">
+                <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <Input
+                  type="url"
+                  placeholder="https://company.com (optional)"
+                  value={websiteInput}
+                  onChange={e => setWebsiteInput(e.target.value)}
+                  className="h-7 text-xs rounded-sm"
+                  disabled={loading || savingWebsite}
+                />
+              </div>
+            )}
+
             <Button
               size="sm"
               className="h-7 px-3 text-xs rounded-sm cursor-pointer"
-              disabled={loading}
-              onClick={() => handleEnrich(false)}
+              disabled={loading || savingWebsite}
+              onClick={handleSaveWebsiteAndEnrich}
             >
-              <RefreshCw className={`h-3 w-3 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3 w-3 mr-1.5 ${loading || savingWebsite ? 'animate-spin' : ''}`} />
               Enrich now
             </Button>
           </div>
@@ -153,12 +244,13 @@ export default function EnrichmentPanel({ target, onEnriched }: Props) {
 
         {loading && (
           <div className="text-center py-6">
-            <p className="text-sm text-muted-foreground">Enriching from GLEIF…</p>
+            <p className="text-sm text-muted-foreground">Running enrichment…</p>
           </div>
         )}
 
         {hasData && !loading && (
           <div className="space-y-0">
+            {/* --- Corporate / GLEIF data --- */}
             {target.legal_form && (
               <DataRow icon={Building2} label="Legal form" value={target.legal_form} />
             )}
@@ -214,12 +306,117 @@ export default function EnrichmentPanel({ target, onEnriched }: Props) {
               />
             )}
 
+            {/* --- Succession Assessment --- */}
+            {hasSuccession && (
+              <>
+                <SectionTitle>Succession Assessment</SectionTitle>
+                <div className="flex items-center gap-2 py-1.5 border-b border-border">
+                  <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <SuccessionRiskBadge risk={target.succession_risk!} />
+                    {target.is_family_business && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium border bg-muted text-muted-foreground border-border">
+                        Family business
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {target.founder_age_estimate && (
+                  <div className="flex items-start gap-3 py-2 border-b border-border last:border-0">
+                    <User className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground">Founder age</p>
+                      <p className="text-sm font-medium text-foreground">{target.founder_age_estimate}</p>
+                      {target.founder_age_reasoning && (
+                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                          {target.founder_age_reasoning}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* --- Management Team --- */}
+            {hasManagement && (
+              <>
+                <SectionTitle>Management</SectionTitle>
+                {target.directors!.map((name, i) => {
+                  const roleDetail = target.director_roles?.find(r => r.name === name)
+                  return (
+                    <div
+                      key={`${name}-${i}`}
+                      className="flex items-start gap-3 py-2 border-b border-border last:border-0"
+                    >
+                      <Users className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground">{name}</p>
+                        {roleDetail?.role && (
+                          <p className="text-xs text-muted-foreground">{roleDetail.role}</p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </>
+            )}
+
+            {/* --- Business Profile --- */}
+            {hasBusinessProfile && (
+              <>
+                <SectionTitle>Business Profile</SectionTitle>
+                {target.geographic_focus && (
+                  <div className="flex items-start gap-3 py-2 border-b border-border last:border-0">
+                    <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground">Geographic focus</p>
+                      <p className="text-sm font-medium text-foreground">{target.geographic_focus}</p>
+                    </div>
+                  </div>
+                )}
+                {target.industries_served && target.industries_served.length > 0 && (
+                  <div className="flex items-start gap-3 py-2 border-b border-border last:border-0">
+                    <Briefcase className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground">Industries served</p>
+                      <p className="text-sm font-medium text-foreground">
+                        {target.industries_served.slice(0, 2).join(', ')}
+                        {target.industries_served.length > 2 && (
+                          <span className="text-muted-foreground ml-1 text-xs">
+                            +{target.industries_served.length - 2} more
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {target.products_services && target.products_services.length > 0 && (
+                  <div className="flex items-start gap-3 py-2 border-b border-border last:border-0">
+                    <Building2 className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground">Products &amp; services</p>
+                      <p className="text-sm font-medium text-foreground">
+                        {target.products_services.slice(0, 3).join(', ')}
+                        {target.products_services.length > 3 && (
+                          <span className="text-muted-foreground ml-1 text-xs">
+                            +{target.products_services.length - 3} more
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* --- Data sources --- */}
             {target.data_sources && target.data_sources.length > 0 && (
-              <div className="flex items-center gap-1.5 pt-3">
+              <div className="flex items-center gap-1.5 pt-3 flex-wrap">
                 <span className="text-xs text-muted-foreground">Sources:</span>
                 {target.data_sources.map(src => (
-                  <Badge key={src} variant="secondary" className="text-xs font-normal capitalize rounded-sm">
-                    {src.replace(/_/g, ' ')}
+                  <Badge key={src} variant="secondary" className="text-xs font-normal rounded-sm">
+                    {formatSourceLabel(src)}
                   </Badge>
                 ))}
               </div>
