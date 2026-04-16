@@ -19,7 +19,9 @@ Do NOT cluster scores in the 7–8 range. Differentiate meaningfully between tar
 
 Scoring dimensions:
 - transition_score: Owner succession readiness. High = older founder (60+), no clear successor,
-  long tenure, family-owned. Low = young owner, professional management already in place.
+  long tenure, family-owned, sole key person, high succession risk. Low = young owner, professional
+  management already in place, next generation present. Weight enriched succession intelligence
+  (succession_risk, founder_age_estimate, family business flag) heavily when available.
 - value_score: Acquisition upside potential. High = stable cashflows, defensible niche,
   underinvested in tech/ops, clear improvement levers. Low = declining revenue, commoditised, high capex.
 - market_score: Industry attractiveness. High = fragmented sector ripe for consolidation,
@@ -59,6 +61,44 @@ def _build_target_summary(target: dict) -> str:
         from datetime import datetime
         age_yrs = datetime.now().year - founded
         lines.append(f"Company age: {age_yrs} years")
+
+    # Enriched intelligence fields
+    if target.get("legal_form"):
+        lines.append(f"Legal form: {target['legal_form']}")
+    if target.get("registration_number"):
+        lines.append(f"Registration: {target['registration_number']}")
+    if target.get("parent_company"):
+        lines.append(f"Parent company: {target['parent_company']}")
+    if target.get("ultimate_parent"):
+        lines.append(f"Ultimate parent: {target['ultimate_parent']}")
+    if target.get("is_family_business") is not None:
+        lines.append(f"Family business: {target['is_family_business']}")
+    if target.get("succession_risk"):
+        lines.append(f"Succession risk: {target['succession_risk']}")
+    if target.get("founder_age_estimate"):
+        lines.append(f"Founder age estimate: {target['founder_age_estimate']}")
+    if target.get("directors"):
+        directors = target["directors"]
+        if isinstance(directors, list):
+            lines.append(f"Key directors: {', '.join(str(d) for d in directors[:5])}")
+    if target.get("products_services"):
+        ps = target["products_services"]
+        if isinstance(ps, list):
+            lines.append(f"Products/services: {', '.join(ps[:5])}")
+    if target.get("geographic_focus"):
+        lines.append(f"Geographic focus: {target['geographic_focus']}")
+    if target.get("succession_signals"):
+        sigs = target["succession_signals"]
+        if isinstance(sigs, dict):
+            notes = []
+            if sigs.get("sole_key_person"):
+                notes.append("sole key person")
+            if sigs.get("next_generation_present"):
+                notes.append("next generation present")
+            if sigs.get("generational_language"):
+                notes.append("generational language detected")
+            if notes:
+                lines.append(f"Succession signals: {', '.join(notes)}")
 
     if target.get("raw_data"):
         lines.append(f"Additional data: {json.dumps(target['raw_data'])[:500]}")
