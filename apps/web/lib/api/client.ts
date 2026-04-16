@@ -51,6 +51,8 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ target_id: targetId, stage: 'watchlist' }),
       }),
+    update: (id: string, data: Partial<Target>) =>
+      apiFetch<Target>(`/targets/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     bulkImport: (file: File) => {
       const form = new FormData()
       form.append('file', file)
@@ -256,6 +258,18 @@ export interface Target {
   parent_company: string | null
   ultimate_parent: string | null
   data_sources: string[] | null
+  // Web enrichment fields
+  is_family_business: boolean | null
+  succession_risk: 'high' | 'medium' | 'low' | 'unknown' | null
+  succession_signals: Record<string, unknown> | null
+  founder_age_estimate: string | null
+  founder_age_reasoning: string | null
+  products_services: string[] | null
+  industries_served: string[] | null
+  geographic_focus: string | null
+  key_customers: string[] | null
+  key_suppliers: string[] | null
+  web_analysis: Record<string, unknown> | null
 }
 
 export interface EnrichmentSource {
