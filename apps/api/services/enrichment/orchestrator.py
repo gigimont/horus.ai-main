@@ -7,20 +7,27 @@ import json
 from datetime import datetime, timezone
 from typing import Optional
 from supabase import Client
-from .opencorporates import OpenCorporatesProvider
+from .gleif import GLEIFProvider
 
 _FIELD_MAP = {
+    "lei_code": "lei_code",
     "legal_form": "legal_form",
     "registration_number": "registration_number",
     "registration_authority": "registration_authority",
-    "opencorporates_url": "opencorporates_url",
     "directors": "directors",
     "director_roles": "director_roles",
     "founded_year": "founded_year",
     "share_capital": "share_capital",
+    "parent_company": "parent_company",
+    "ultimate_parent": "ultimate_parent",
 }
 
 MINIMUM_CONFIDENCE = 0.4
+
+PROVIDERS = [
+    GLEIFProvider(),   # Corporate hierarchy: LEI code, parent companies, legal form
+    # Future: OffeneRegisterProvider(), TEDProvider()
+]
 
 
 def _now() -> str:
@@ -29,18 +36,6 @@ def _now() -> str:
 
 def _jsonable(obj) -> dict:
     return json.loads(json.dumps(obj, default=str))
-
-
-def _build_providers():
-    try:
-        from config import settings
-        token = settings.opencorporates_api_token
-    except Exception:
-        token = None
-    return [OpenCorporatesProvider(api_token=token)]
-
-
-PROVIDERS = _build_providers()
 
 
 async def run_enrichment(

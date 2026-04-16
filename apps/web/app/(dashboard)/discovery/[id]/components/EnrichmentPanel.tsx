@@ -7,13 +7,12 @@ import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import {
   Building2,
-  Users,
   Hash,
   Globe,
   ChevronDown,
   ChevronUp,
   RefreshCw,
-  ExternalLink,
+  Network,
 } from 'lucide-react'
 
 interface Props {
@@ -154,42 +153,12 @@ export default function EnrichmentPanel({ target, onEnriched }: Props) {
 
         {loading && (
           <div className="text-center py-6">
-            <p className="text-sm text-muted-foreground">Enriching from OpenCorporates…</p>
+            <p className="text-sm text-muted-foreground">Enriching from GLEIF…</p>
           </div>
         )}
 
         {hasData && !loading && (
           <div className="space-y-0">
-            {target.directors && target.directors.length > 0 && (
-              <DataRow
-                icon={Users}
-                label="Directors"
-                value={
-                  <div className="space-y-0.5 mt-0.5">
-                    {target.director_roles && target.director_roles.length > 0
-                      ? target.director_roles
-                          .filter(d => d.status === 'active')
-                          .slice(0, 5)
-                          .map((d, i) => (
-                            <div key={i} className="text-sm">
-                              {d.name}
-                              {d.role && d.role !== 'director' && (
-                                <span className="text-muted-foreground"> — {d.role}</span>
-                              )}
-                              {d.start_date && (
-                                <span className="text-muted-foreground"> (since {d.start_date.slice(0, 4)})</span>
-                              )}
-                            </div>
-                          ))
-                      : target.directors.slice(0, 5).map((d, i) => (
-                          <div key={i} className="text-sm">{d}</div>
-                        ))
-                    }
-                  </div>
-                }
-              />
-            )}
-
             {target.legal_form && (
               <DataRow icon={Building2} label="Legal form" value={target.legal_form} />
             )}
@@ -210,19 +179,37 @@ export default function EnrichmentPanel({ target, onEnriched }: Props) {
               <DataRow icon={Building2} label="Share capital" value={target.share_capital} />
             )}
 
-            {target.opencorporates_url && (
+            {(target.parent_company || target.ultimate_parent) && (
+              <DataRow
+                icon={Network}
+                label="Corporate group"
+                value={
+                  <div className="space-y-0.5 mt-0.5">
+                    {target.parent_company && (
+                      <div className="text-sm">
+                        {target.parent_company}
+                        <span className="text-muted-foreground ml-1.5 text-xs">parent</span>
+                      </div>
+                    )}
+                    {target.ultimate_parent && target.ultimate_parent !== target.parent_company && (
+                      <div className="text-sm">
+                        {target.ultimate_parent}
+                        <span className="text-muted-foreground ml-1.5 text-xs">ultimate parent</span>
+                      </div>
+                    )}
+                  </div>
+                }
+              />
+            )}
+
+            {target.lei_code && (
               <DataRow
                 icon={Globe}
-                label="OpenCorporates"
+                label="LEI"
                 value={
-                  <a
-                    href={target.opencorporates_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-emerald-700 hover:text-emerald-800 transition-colors cursor-pointer"
-                  >
-                    View profile <ExternalLink className="h-3 w-3" />
-                  </a>
+                  <code className="text-xs font-mono text-muted-foreground tracking-wide">
+                    {target.lei_code}
+                  </code>
                 }
               />
             )}

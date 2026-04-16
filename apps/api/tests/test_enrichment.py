@@ -1,5 +1,5 @@
 """
-Tests for enrichment orchestrator and providers.
+Tests for enrichment orchestrator and GLEIF provider.
 """
 import pytest
 from unittest.mock import AsyncMock, MagicMock
@@ -8,94 +8,113 @@ from unittest.mock import AsyncMock, MagicMock
 # ── Provider name ─────────────────────────────────────────────────────────────
 
 def test_provider_name_defined():
-    from services.enrichment.opencorporates import OpenCorporatesProvider
-    provider = OpenCorporatesProvider()
-    assert provider.name == "opencorporates"
-
-
-# ── No-token guard ───────────────────────────────────────────────────────────
-
-@pytest.mark.asyncio
-async def test_search_returns_none_when_no_token():
-    """Without a token, search() returns None (not raises) — skips provider gracefully."""
-    from services.enrichment.opencorporates import OpenCorporatesProvider
-    p = OpenCorporatesProvider(api_token=None)
-    result = await p.search({"name": "Test GmbH", "country": "Germany", "city": "Berlin"})
-    assert result is None
-
-
-@pytest.mark.asyncio
-async def test_orchestrator_stays_none_when_no_token():
-    """No-token provider → providers_failed empty → target enrichment_status = 'none', not 'failed'."""
-    from services.enrichment.orchestrator import run_enrichment
-    from services.enrichment.opencorporates import OpenCorporatesProvider
-
-    no_token_provider = OpenCorporatesProvider(api_token=None)
-    mock_db = _make_mock_db()
-    target = {"id": "test-id", "name": "Test GmbH", "country": "Germany", "city": "Berlin"}
-
-    await run_enrichment(target=target, tenant_id="tenant", db=mock_db, providers=[no_token_provider])
-
-    # The key assertion: update call on targets table should set enrichment_status = 'none', not 'failed'
-    # We verify by checking that no provider was added to providers_failed in the job update
-    update_calls = mock_db.table.return_value.update.call_args_list
-    # At least one update call should contain providers_failed=[]
-    job_updates = [
-        call for call in update_calls
-        if call.args and isinstance(call.args[0], dict) and "providers_failed" in call.args[0]
-    ]
-    if job_updates:
-        assert job_updates[0].args[0]["providers_failed"] == []
+    from services.enrichment.gleif import GLEIFProvider
+    provider = GLEIFProvider()
+    assert provider.name == "gleif"
 
 
 # ── Country mapping ───────────────────────────────────────────────────────────
 
 def test_country_to_code_known():
-    from services.enrichment.opencorporates import OpenCorporatesProvider
-    p = OpenCorporatesProvider()
-    assert p._country_to_code("Germany") == "de"
-    assert p._country_to_code("ITALIA") == "it"
-    assert p._country_to_code("france") == "fr"
+    from services.enrichment.gleif import GLEIFProvider
+    p = GLEIFProvider()
+    assert p._country_to_code("Germany") == "DE"
+    assert p._country_to_code("ITALIA") == "IT"
+    assert p._country_to_code("france") == "FR"
 
 
 def test_country_to_code_portugal():
-    from services.enrichment.opencorporates import OpenCorporatesProvider
-    p = OpenCorporatesProvider()
-    assert p._country_to_code("Portugal") == "pt"
+    from services.enrichment.gleif import GLEIFProvider
+    p = GLEIFProvider()
+    assert p._country_to_code("Portugal") == "PT"
 
+
+def test_country_to_code_two_letter_passthrough():
+    from services.enrichment.gleif import GLEIFProvider
+    p = GLEIFProvider()
+    assert p._country_to_code("de") == "DE"
+    assert p._country_to_code("PL") == "PL"
+
+
+# ── Year extraction ───────────────────────────────────────────────────────────
 
 def test_extract_year_valid():
-    from services.enrichment.opencorporates import OpenCorporatesProvider
-    p = OpenCorporatesProvider()
-    assert p._extract_year("1987-03-15") == 1987
-    assert p._extract_year("2003") == 2003
+    from services.enrichment.gleif import GLEIFProvider
+    p = GLEIFProvider()
+    assert p._extract_year("1987-03-15T00:00:00Z") == 1987
+    assert p._extract_year("2003-01-01T00:00:00Z") == 2003
 
 
 def test_extract_year_none():
-    from services.enrichment.opencorporates import OpenCorporatesProvider
-    p = OpenCorporatesProvider()
+    from services.enrichment.gleif import GLEIFProvider
+    p = GLEIFProvider()
     assert p._extract_year(None) is None
     assert p._extract_year("") is None
+
+
+# ── Legal form extraction ─────────────────────────────────────────────────────
+
+def test_extract_legal_form_gmbh():
+    from services.enrichment.gleif import _extract_legal_form
+    assert _extract_legal_form("Müller Haustechnik GmbH") == "GmbH"
+
+
+def test_extract_legal_form_ag():
+    from services.enrichment.gleif import _extract_legal_form
+    assert _extract_legal_form("Siemens Aktiengesellschaft") == "Aktiengesellschaft"
+    assert _extract_legal_form("Siemens AG") == "AG"
+
+
+def test_extract_legal_form_gmbh_co_kg():
+    from services.enrichment.gleif import _extract_legal_form
+    assert _extract_legal_form("Müller GmbH & Co. KG") == "GmbH & Co. KG"
+
+
+def test_extract_legal_form_none():
+    from services.enrichment.gleif import _extract_legal_form
+    assert _extract_legal_form("Unknown Holdings") is None
 
 
 # ── Confidence scoring ────────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
 async def test_confidence_country_and_city_boost():
-    from services.enrichment.opencorporates import OpenCorporatesProvider
-    p = OpenCorporatesProvider()
+    from services.enrichment.gleif import GLEIFProvider
+    p = GLEIFProvider()
     target = {"name": "Müller GmbH", "country": "Germany", "city": "Munich"}
-    result = {"_match_score": 0.8, "jurisdiction_code": "de", "registered_address_in_full": "Munich"}
+    # Simulate GLEIF record structure
+    result = {
+        "_match_score": 0.8,
+        "attributes": {
+            "lei": "TESTLEI",
+            "entity": {
+                "legalAddress": {"country": "DE", "city": "Munich"},
+                "jurisdiction": "DE",
+                "status": "ACTIVE",
+            },
+        },
+    }
     score = await p.confidence_score(target, result)
-    assert score == 1.0  # 0.8 + 0.15 + 0.10 = 1.05 → capped at 1.0
+    # 0.8 + 0.15 (country) + 0.05 (jurisdiction) + 0.10 (city) = 1.1 → capped at 1.0
+    assert score == 1.0
 
 
 @pytest.mark.asyncio
 async def test_confidence_no_boost():
-    from services.enrichment.opencorporates import OpenCorporatesProvider
-    p = OpenCorporatesProvider()
+    from services.enrichment.gleif import GLEIFProvider
+    p = GLEIFProvider()
     target = {"name": "Acme Corp", "country": "France", "city": "Lyon"}
-    result = {"_match_score": 0.6, "jurisdiction_code": "de", "registered_address_in_full": "Berlin"}
+    result = {
+        "_match_score": 0.6,
+        "attributes": {
+            "lei": "TESTLEI",
+            "entity": {
+                "legalAddress": {"country": "DE", "city": "Berlin"},
+                "jurisdiction": "DE",
+                "status": "ACTIVE",
+            },
+        },
+    }
     score = await p.confidence_score(target, result)
     assert score == 0.6
 

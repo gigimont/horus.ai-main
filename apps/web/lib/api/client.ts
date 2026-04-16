@@ -252,7 +252,9 @@ export interface Target {
   director_roles: DirectorRole[] | null
   registration_number: string | null
   registration_authority: string | null
-  opencorporates_url: string | null
+  lei_code: string | null
+  parent_company: string | null
+  ultimate_parent: string | null
   data_sources: string[] | null
 }
 
