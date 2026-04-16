@@ -213,3 +213,93 @@ def _make_mock_db():
     mock_db = MagicMock()
     mock_db.table = MagicMock(return_value=chain)
     return mock_db
+
+
+# ── WebEnrichmentProvider ────────────────────────────────────────────────────
+
+def test_web_enrichment_provider_name():
+    from services.enrichment.web_enrichment import WebEnrichmentProvider
+    p = WebEnrichmentProvider()
+    assert p.name == "web_enrichment"
+
+
+@pytest.mark.asyncio
+async def test_web_enrichment_search_returns_none_when_no_website():
+    """Targets without website field should return None from search."""
+    from services.enrichment.web_enrichment import WebEnrichmentProvider
+    p = WebEnrichmentProvider()
+    result = await p.search({"name": "Test GmbH", "country": "Germany"})
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_web_enrichment_confidence_high_for_rich_content():
+    """Content > 5000 chars should give 0.85 confidence."""
+    from services.enrichment.web_enrichment import WebEnrichmentProvider
+    p = WebEnrichmentProvider()
+    score = await p.confidence_score({}, {"content_length": 6000})
+    assert score == 0.85
+
+
+@pytest.mark.asyncio
+async def test_web_enrichment_confidence_low_for_thin_content():
+    """Content < 500 chars should give 0.3 confidence."""
+    from services.enrichment.web_enrichment import WebEnrichmentProvider
+    p = WebEnrichmentProvider()
+    score = await p.confidence_score({}, {"content_length": 200})
+    assert score == 0.3
+
+
+@pytest.mark.asyncio
+async def test_web_enrichment_enrich_extracts_directors():
+    """enrich() should parse directors from Claude JSON response."""
+    import json
+    from unittest.mock import MagicMock, patch
+    from services.enrichment.web_enrichment import WebEnrichmentProvider
+    p = WebEnrichmentProvider()
+    mock_response = {
+        "directors": [
+            {
+                "name": "Hans Müller",
+                "role": "Geschäftsführer",
+                "is_founder": True,
+                "estimated_age_range": "62-67",
+                "age_reasoning": "Founded 1987",
+                "tenure_signal": "since 1987",
+            }
+        ],
+        "succession_signals": {
+            "is_family_business": True,
+            "succession_risk": "high",
+            "family_name_match": True,
+            "generational_language": False,
+            "next_generation_present": False,
+            "sole_key_person": True,
+            "succession_notes": "Founder-led, no visible successor",
+        },
+        "business_info": {
+            "employee_estimate": 35,
+            "employee_source": "team page",
+            "products_services": ["HVAC", "climate systems"],
+            "industries_served": ["manufacturing"],
+            "geographic_focus": "Bavaria",
+            "key_customers": [],
+            "key_suppliers": [],
+        },
+        "raw_signals": {"founding_year": 1987, "website_language": "de"},
+        "confidence": 0.8,
+        "confidence_reasoning": "Good data",
+    }
+    mock_content = MagicMock()
+    mock_content.text = json.dumps(mock_response)
+    mock_message = MagicMock()
+    mock_message.content = [mock_content]
+    target = {"name": "Müller GmbH", "industry_label": "HVAC", "city": "München", "country": "Germany"}
+    search_result = {"content": "some website content here", "url": "https://example.com", "source": "jina", "content_length": 500}
+    with patch.object(p.client, 'messages') as mock_messages:
+        mock_messages.create.return_value = mock_message
+        result = await p.enrich(target, search_result)
+    assert result["directors"] == ["Hans Müller"]
+    assert result["is_family_business"] is True
+    assert result["succession_risk"] == "high"
+    assert result["founder_age_estimate"] == "62-67"
