@@ -8,25 +8,40 @@ from datetime import datetime, timezone
 from typing import Optional
 from supabase import Client
 from .gleif import GLEIFProvider
+from .web_enrichment import WebEnrichmentProvider
 
 _FIELD_MAP = {
+    # GLEIF fields
     "lei_code": "lei_code",
     "legal_form": "legal_form",
     "registration_number": "registration_number",
     "registration_authority": "registration_authority",
+    "parent_company": "parent_company",
+    "ultimate_parent": "ultimate_parent",
+    # Web enrichment fields
     "directors": "directors",
     "director_roles": "director_roles",
     "founded_year": "founded_year",
     "share_capital": "share_capital",
-    "parent_company": "parent_company",
-    "ultimate_parent": "ultimate_parent",
+    "employee_count": "employee_count",
+    "is_family_business": "is_family_business",
+    "succession_risk": "succession_risk",
+    "succession_signals": "succession_signals",
+    "founder_age_estimate": "founder_age_estimate",
+    "founder_age_reasoning": "founder_age_reasoning",
+    "products_services": "products_services",
+    "industries_served": "industries_served",
+    "geographic_focus": "geographic_focus",
+    "key_customers": "key_customers",
+    "key_suppliers": "key_suppliers",
+    "web_analysis": "web_analysis",
 }
 
 MINIMUM_CONFIDENCE = 0.4
 
 PROVIDERS = [
-    GLEIFProvider(),   # Corporate hierarchy: LEI code, parent companies, legal form
-    # Future: OffeneRegisterProvider(), TEDProvider()
+    GLEIFProvider(),          # Corporate hierarchy: LEI code, parent companies, legal form
+    WebEnrichmentProvider(),  # Management + succession intelligence from websites
 ]
 
 
@@ -105,7 +120,6 @@ async def run_enrichment(
                 "completed_at": _now(),
             }).eq("id", source_id).execute()
 
-            # First provider wins for conflicting fields
             for key, value in enriched_data.items():
                 if key not in all_enriched and value is not None:
                     all_enriched[key] = value
@@ -120,7 +134,6 @@ async def run_enrichment(
             }).eq("id", source_id).execute()
             providers_failed.append(provider.name)
 
-    # Build target update
     target_update: dict = {}
     for enriched_key, target_col in _FIELD_MAP.items():
         if enriched_key in all_enriched:

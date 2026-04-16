@@ -97,7 +97,7 @@ async def enrich_batch(
         except Exception:
             failed += 1
 
-        await asyncio.sleep(1)
+        await asyncio.sleep(3)
 
     return {
         "total": total,
@@ -195,7 +195,7 @@ async def enrich_all(
             succeeded += 1
         except Exception:
             failed += 1
-        await asyncio.sleep(1)
+        await asyncio.sleep(3)
 
     return {
         "total_queued": total_queued,
