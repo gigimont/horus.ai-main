@@ -177,6 +177,8 @@ export const api = {
       apiFetch<NetworkStats>(`/network/${scenarioId}/stats`),
     clear: (scenarioId: string) =>
       apiFetch<void>(`/network/${scenarioId}`, { method: 'DELETE' }),
+    summary: (scenarioId: string) =>
+      apiFetch<NetworkSummary>(`/network/${scenarioId}/summary`),
   },
   enrichment: {
     enrich: (targetId: string, force = false) =>
@@ -541,6 +543,12 @@ export interface NetworkStats {
   edge_type_distribution: Record<string, number>
   most_connected: { target_id: string; name: string; edge_count: number } | null
   isolated_targets: string[]
+}
+
+export interface NetworkSummary {
+  summary: string
+  key_insights: string[]
+  recommended_actions: string[]
 }
 
 export interface NetworkGraph {

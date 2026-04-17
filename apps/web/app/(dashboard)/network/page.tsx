@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useEffect, useState, useCallback } from 'react'
-import { api, type NetworkGraph, type NetworkStats, type RollupScenario } from '@/lib/api/client'
+import { api, type NetworkGraph, type NetworkStats, type NetworkSummary, type RollupScenario } from '@/lib/api/client'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
@@ -44,6 +44,8 @@ export default function NetworkPage() {
   const [network, setNetwork] = useState<NetworkGraph | null>(null)
   const [stats, setStats] = useState<NetworkStats | null>(null)
   const [state, setState] = useState<PageState>('idle')
+  const [summary, setSummary] = useState<NetworkSummary | null>(null)
+  const [summaryLoading, setSummaryLoading] = useState(false)
   const [activeEdgeTypes, setActiveEdgeTypes] = useState<Set<string>>(
     new Set(Object.keys(EDGE_TYPE_LABELS))
   )
@@ -51,6 +53,18 @@ export default function NetworkPage() {
 
   useEffect(() => {
     api.rollup.list().then(r => setScenarios(r.data)).catch(() => {})
+  }, [])
+
+  const loadSummary = useCallback(async (scenarioId: string) => {
+    setSummaryLoading(true)
+    try {
+      const s = await api.network.summary(scenarioId)
+      setSummary(s)
+    } catch {
+      // summary is optional — don't fail the page
+    } finally {
+      setSummaryLoading(false)
+    }
   }, [])
 
   const loadNetwork = useCallback(async (scenarioId: string) => {
@@ -61,16 +75,19 @@ export default function NetworkPage() {
       ])
       setNetwork(graph)
       setStats(s)
-      setState(graph.edges.length > 0 ? 'loaded' : 'idle')
+      const hasEdges = graph.edges.length > 0
+      setState(hasEdges ? 'loaded' : 'idle')
+      if (hasEdges) loadSummary(scenarioId)
     } catch {
       setState('error')
     }
-  }, [])
+  }, [loadSummary])
 
   const handleScenarioChange = (id: string) => {
     setSelectedId(id)
     setNetwork(null)
     setStats(null)
+    setSummary(null)
     setState('idle')
     if (id) loadNetwork(id)
   }
@@ -227,6 +244,53 @@ export default function NetworkPage() {
         {/* Stats sidebar */}
         {stats && (
           <div className="w-64 shrink-0 border border-border rounded-sm p-4 flex flex-col gap-4 overflow-y-auto">
+            {/* Network Intelligence */}
+            {(summaryLoading || summary) && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Network Intelligence</p>
+                  {summary && !summaryLoading && (
+                    <button
+                      onClick={() => loadSummary(selectedId)}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                      title="Regenerate summary"
+                    >
+                      ↺
+                    </button>
+                  )}
+                </div>
+                {summaryLoading ? (
+                  <div className="space-y-1.5">
+                    <div className="h-3 bg-muted rounded-sm animate-pulse w-full" />
+                    <div className="h-3 bg-muted rounded-sm animate-pulse w-5/6" />
+                    <div className="h-3 bg-muted rounded-sm animate-pulse w-4/6" />
+                  </div>
+                ) : summary ? (
+                  <div className="space-y-3">
+                    <p className="text-xs text-foreground leading-relaxed">{summary.summary}</p>
+                    {summary.key_insights.length > 0 && (
+                      <div className="space-y-1">
+                        {summary.key_insights.map((insight, i) => (
+                          <p key={i} className="text-xs text-muted-foreground">&middot; {insight}</p>
+                        ))}
+                      </div>
+                    )}
+                    {summary.recommended_actions.length > 0 && (
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Actions</p>
+                        <div className="space-y-1">
+                          {summary.recommended_actions.map((action, i) => (
+                            <p key={i} className="text-xs text-muted-foreground">&rarr; {action}</p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {/* Network stats */}
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Network stats</p>
               <div className="space-y-1">
