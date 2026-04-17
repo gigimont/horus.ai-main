@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Target } from '@/lib/api/client'
 import ScoreBadge from '@/components/shared/ScoreBadge'
 import { Button } from '@/components/ui/button'
-import { ExternalLink, Trash2 } from 'lucide-react'
+import { ExternalLink, Trash2, Network } from 'lucide-react'
 import { api } from '@/lib/api/client'
 
 interface Props {
@@ -71,6 +71,7 @@ export default function TargetTable({ targets, onDelete }: Props) {
             <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Employees</th>
             <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Owner age</th>
             <th className="text-center px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Enrichment</th>
+            <th className="text-center px-2 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide w-8">Net</th>
             <th className="text-center px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Succession</th>
             <th className="text-center px-2 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide w-12">Fam</th>
             <th className="text-center px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">Score</th>
@@ -113,6 +114,14 @@ export default function TargetTable({ targets, onDelete }: Props) {
                 </td>
                 <td className="px-4 py-2.5 text-center">
                   <EnrichmentStatusBadge status={t.enrichment_status} />
+                </td>
+                <td className="px-2 py-2.5 text-center w-8">
+                  {t.directors && t.directors.length > 0 && (
+                    <Network
+                      className="h-3 w-3 text-muted-foreground inline-block"
+                      title="Has director data — run network scan to find connections"
+                    />
+                  )}
                 </td>
                 <td className="px-4 py-2.5 text-center">
                   <SuccessionPill risk={t.succession_risk} />

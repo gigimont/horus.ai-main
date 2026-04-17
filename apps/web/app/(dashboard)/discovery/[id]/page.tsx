@@ -10,6 +10,7 @@ import CopilotChat from '../components/CopilotChat'
 import AddToPipelineButton from '../components/AddToPipelineButton'
 import ScenarioPanel from './components/ScenarioPanel'
 import EnrichmentPanel from './components/EnrichmentPanel'
+import OfficerNetworkPanel from './components/OfficerNetworkPanel'
 import { createClient } from '@/lib/supabase/server'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
@@ -134,6 +135,7 @@ export default async function TargetDetailPage({ params }: { params: Promise<{ i
           </Card>
 
           <EnrichmentPanel target={target} />
+          <OfficerNetworkPanel targetId={id} />
 
           <Card>
             <CardHeader><CardTitle className="text-sm">Score breakdown</CardTitle></CardHeader>
