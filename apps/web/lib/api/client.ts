@@ -22,6 +22,9 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     const err = await res.text()
     throw new Error(err || `API error ${res.status}`)
   }
+  if (res.status === 204 || res.headers.get('content-length') === '0') {
+    return undefined as unknown as T
+  }
   return res.json()
 }
 
@@ -166,7 +169,7 @@ export const api = {
     analyse: (scenarioId: string) =>
       apiFetch<{ edges_created: number; target_count: number }>(
         `/network/analyse/${scenarioId}`,
-        { method: 'POST' }
+        { method: 'POST', signal: AbortSignal.timeout(120_000) }
       ),
     get: (scenarioId: string) =>
       apiFetch<NetworkGraph>(`/network/${scenarioId}`),
