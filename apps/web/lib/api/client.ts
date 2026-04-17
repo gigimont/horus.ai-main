@@ -193,7 +193,59 @@ export const api = {
       apiFetch<{ data: EnrichmentJob[] }>(`/enrichment/jobs/${targetId}`),
     stats: () =>
       apiFetch<EnrichmentStats>('/enrichment/stats'),
+    discoverWebsite: (targetId: string) =>
+      apiFetch<{ found: boolean; url: string | null; already_had_website?: boolean }>(
+        `/enrichment/discover-website/${targetId}`,
+        { method: 'POST' }
+      ),
+    discoverWebsites: (autoEnrich = false) =>
+      apiFetch<{ total_searched: number; found: number; not_found: number; urls_added: { target_id: string; target_name: string; url: string }[] }>(
+        `/enrichment/discover-websites${autoEnrich ? '?auto_enrich=true' : ''}`,
+        { method: 'POST' }
+      ),
   },
+  officerNetwork: {
+    scan: () =>
+      apiFetch<OfficerNetworkResult>('/officer-network/scan', { method: 'POST' }),
+    get: () =>
+      apiFetch<{ shared_officers: OfficerNetworkRow[]; family_name_clusters: OfficerNetworkRow[]; total: number }>('/officer-network/'),
+    forTarget: (targetId: string) =>
+      apiFetch<{ connections: OfficerNetworkRow[]; total: number }>(`/officer-network/target/${targetId}`),
+  },
+}
+
+export interface OfficerNetworkRow {
+  id: string
+  tenant_id: string
+  officer_name: string
+  normalized_name: string
+  match_type: 'exact' | 'family_name'
+  target_ids: string[]
+  target_names: string[]
+  roles: string[]
+  metadata: Record<string, unknown>
+  detected_at: string
+}
+
+export interface OfficerNetworkResult {
+  shared_officers: Array<{
+    officer_name: string
+    normalized_name: string
+    targets: Array<{ target_id: string; target_name: string; role: string }>
+    match_type: 'exact'
+  }>
+  family_name_clusters: Array<{
+    family_name: string
+    targets: Array<{ target_id: string; target_name: string }>
+    distinct_officers: string[]
+  }>
+  stats: {
+    total_targets_with_directors: number
+    total_unique_directors: number
+    shared_officers_found: number
+    family_clusters_found: number
+  }
+  rows_stored: number
 }
 
 export interface Filters {

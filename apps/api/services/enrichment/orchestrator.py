@@ -164,4 +164,12 @@ async def run_enrichment(
         "completed_at": _now(),
     }).eq("id", job_id).execute()
 
+    # Auto-rescore so transition/value scores immediately reflect enriched data
+    if providers_completed:
+        try:
+            from services.scoring_service import score_single_target
+            await score_single_target(target["id"], tenant_id)
+        except Exception as e:
+            print(f"[auto-rescore] failed for {target['id']}: {e}")
+
     return db.table("enrichment_jobs").select("*").eq("id", job_id).single().execute().data
