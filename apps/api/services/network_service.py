@@ -84,7 +84,20 @@ async def analyse_network(targets: list[dict], scenario_name: str) -> list[dict]
         )
 
         raw = response.content[0].text.strip()
-        result: list[dict] = json.loads(raw)
+        # Strip markdown fences if present
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
+        if not raw:
+            logger.warning("Empty response from Claude for network batch starting at %d", batch_start)
+            continue
+        try:
+            result: list[dict] = json.loads(raw)
+        except json.JSONDecodeError as e:
+            logger.warning("JSON parse error for network batch: %s\nRaw: %r", e, raw[:500])
+            continue
 
         for item in result:
             pair_idx = item["pair_index"]
