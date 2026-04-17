@@ -369,3 +369,58 @@ async def memo_pdf(
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+
+@router.post("/from-cluster/{cluster_id}", status_code=201)
+async def create_from_cluster(
+    cluster_id: str,
+    tenant_id: str = Depends(get_tenant_id),
+    db: Client = Depends(get_db)
+):
+    """Create a roll-up strategy from all targets in a cluster."""
+    cluster_res = db.table("clusters").select(
+        "id, label, description, cluster_members(target_id, targets(id, deleted_at))"
+    ).eq("id", cluster_id).eq("tenant_id", tenant_id).single().execute()
+    if not cluster_res.data:
+        raise HTTPException(404, "Cluster not found")
+
+    cluster = cluster_res.data
+    # Only include live (non-deleted) targets
+    live_members = [
+        m for m in (cluster.get("cluster_members") or [])
+        if m.get("targets") and not m["targets"].get("deleted_at")
+    ]
+    if not live_members:
+        raise HTTPException(400, "Cluster has no active targets")
+
+    # Create the rollup scenario
+    scenario_res = db.table("rollup_scenarios").insert({
+        "tenant_id": tenant_id,
+        "name": cluster["label"],
+        "description": cluster.get("description") or f"Created from cluster: {cluster['label']}",
+        "status": "draft",
+    }).execute()
+    scenario = scenario_res.data[0]
+    scenario_id = scenario["id"]
+
+    # Add all cluster targets to the scenario
+    rows = [
+        {
+            "scenario_id": scenario_id,
+            "target_id": m["target_id"],
+            "sequence_order": i,
+            "entry_multiple": 5.0,
+            "ebitda_margin_pct": None,
+            "ebitda_margin_source": "manual",
+            "synergy_pct": 0.0,
+            "revenue_uplift_pct": 0.0,
+            "debt_pct": 0.5,
+            "integration_cost_eur": 0,
+            "hold_period_years": 5,
+        }
+        for i, m in enumerate(live_members)
+    ]
+    db.table("rollup_scenario_targets").insert(rows).execute()
+
+    scenario["target_count"] = len(live_members)
+    return scenario

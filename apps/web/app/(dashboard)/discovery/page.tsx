@@ -102,6 +102,7 @@ export default function DiscoveryPage() {
         `Found ${shared_officers_found} shared officers, ${family_clusters_found} family clusters`,
         { id: toastId }
       )
+      load()
     } catch {
       toast.error('Network scan failed', { id: toastId })
     } finally {

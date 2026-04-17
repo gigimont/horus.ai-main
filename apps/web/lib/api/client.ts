@@ -140,6 +140,8 @@ export const api = {
     memo: (id: string) =>
       apiFetch<{ memo: string }>(`/rollup/${id}/memo`, { method: 'POST' }),
     memoPdfUrl: (id: string) => `${API_URL}/rollup/${id}/memo/pdf`,
+    fromCluster: (clusterId: string) =>
+      apiFetch<RollupScenario>(`/rollup/from-cluster/${clusterId}`, { method: 'POST' }),
   },
   scenarios: {
     run: (

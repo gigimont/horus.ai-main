@@ -16,9 +16,23 @@ async def list_clusters(
     db: Client = Depends(get_db)
 ):
     result = db.table("clusters").select(
-        "*, cluster_members(target_id, targets(id, name, country, city, industry_label, target_scores(overall_score)))"
+        "*, cluster_members(target_id, targets(id, name, country, city, industry_label, deleted_at, target_scores(overall_score)))"
     ).eq("tenant_id", tenant_id).order("member_count", desc=True).execute()
-    return {"data": result.data or []}
+
+    clusters = []
+    for cluster in (result.data or []):
+        # Strip members whose target was soft-deleted or doesn't exist
+        valid_members = [
+            m for m in (cluster.get("cluster_members") or [])
+            if m.get("targets") and not m["targets"].get("deleted_at")
+        ]
+        if not valid_members:
+            continue  # Drop clusters with no live targets
+        cluster["cluster_members"] = valid_members
+        cluster["member_count"] = len(valid_members)
+        clusters.append(cluster)
+
+    return {"data": clusters}
 
 @router.post("/refresh")
 async def refresh_clusters(
