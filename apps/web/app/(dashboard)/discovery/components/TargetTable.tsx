@@ -117,10 +117,9 @@ export default function TargetTable({ targets, onDelete }: Props) {
                 </td>
                 <td className="px-2 py-2.5 text-center w-8">
                   {t.directors && t.directors.length > 0 && (
-                    <Network
-                      className="h-3 w-3 text-muted-foreground inline-block"
-                      title="Has director data — run network scan to find connections"
-                    />
+                    <span title="Has director data — run network scan to find connections">
+                      <Network className="h-3 w-3 text-muted-foreground inline-block" />
+                    </span>
                   )}
                 </td>
                 <td className="px-4 py-2.5 text-center">
