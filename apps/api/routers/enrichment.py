@@ -203,3 +203,60 @@ async def enrich_all(
         "failed": failed,
         "started": True,
     }
+
+
+@router.post("/discover-website/{target_id}")
+async def discover_website_single(
+    target_id: str,
+    tenant_id: str = Depends(get_tenant_id),
+    db: Client = Depends(get_db),
+):
+    """Discover and save website URL for a single target."""
+    from services.enrichment.website_discovery import discover_website
+    result = db.table("targets").select("id, name, country, city, website").eq("id", target_id).eq("tenant_id", tenant_id).single().execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Target not found")
+    target = result.data
+    if target.get("website"):
+        return {"found": True, "url": target["website"], "already_had_website": True}
+    url = await discover_website(target["name"], target.get("country", ""), target.get("city", ""))
+    if url:
+        db.table("targets").update({"website": url}).eq("id", target_id).eq("tenant_id", tenant_id).execute()
+    return {"found": bool(url), "url": url}
+
+
+@router.post("/discover-websites")
+async def discover_websites_batch(
+    auto_enrich: bool = False,
+    tenant_id: str = Depends(get_tenant_id),
+    db: Client = Depends(get_db),
+):
+    """Find websites for all targets missing a website URL."""
+    import asyncio
+    from services.enrichment.website_discovery import discover_website
+    res = db.table("targets").select("id, name, country, city").eq("tenant_id", tenant_id).is_("deleted_at", None).is_("website", None).execute()
+    targets = res.data or []
+    total_searched = len(targets)
+    urls_added = []
+    not_found = 0
+    for target in targets:
+        url = await discover_website(target["name"], target.get("country", ""), target.get("city", ""))
+        if url:
+            db.table("targets").update({"website": url}).eq("id", target["id"]).execute()
+            urls_added.append({"target_id": target["id"], "target_name": target["name"], "url": url})
+            if auto_enrich:
+                try:
+                    t_full = db.table("targets").select("*").eq("id", target["id"]).single().execute().data
+                    if t_full:
+                        await run_enrichment(target=t_full, tenant_id=tenant_id, db=db)
+                except Exception as e:
+                    print(f"[auto-enrich] failed for {target['id']}: {e}")
+        else:
+            not_found += 1
+        await asyncio.sleep(2)
+    return {
+        "total_searched": total_searched,
+        "found": len(urls_added),
+        "not_found": not_found,
+        "urls_added": urls_added,
+    }
