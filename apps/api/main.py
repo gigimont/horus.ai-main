@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import targets, scoring, clusters, chat, exports, pipeline, billing, rollup, scenarios, network, enrichment
+from routers import targets, scoring, clusters, chat, exports, pipeline, billing, rollup, scenarios, network, enrichment, officer_network
 from config import settings
 
 app = FastAPI(title="SearchFund AI API", version="1.0.0")
@@ -29,6 +29,7 @@ app.include_router(rollup.router, prefix="/rollup", tags=["rollup"])
 app.include_router(scenarios.router, prefix="/scenarios", tags=["scenarios"])
 app.include_router(network.router, prefix="/network", tags=["network"])
 app.include_router(enrichment.router, prefix="/enrichment", tags=["enrichment"])
+app.include_router(officer_network.router, prefix="/officer-network", tags=["officer-network"])
 
 @app.get("/health")
 def health():
