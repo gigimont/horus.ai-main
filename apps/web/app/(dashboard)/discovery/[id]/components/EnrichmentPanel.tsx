@@ -110,6 +110,7 @@ export default function EnrichmentPanel({ target, onEnriched }: Props) {
   const [savingWebsite, setSavingWebsite] = useState(false)
   const [industriesExpanded, setIndustriesExpanded] = useState(false)
   const [productsExpanded, setProductsExpanded] = useState(false)
+  const [detectingWebsite, setDetectingWebsite] = useState(false)
 
   const hasData = target.enrichment_status === 'enriched' || target.enrichment_status === 'partial'
   const showWebsiteInput = !target.website
@@ -153,6 +154,23 @@ export default function EnrichmentPanel({ target, onEnriched }: Props) {
       }
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleAutoDetect() {
+    setDetectingWebsite(true)
+    try {
+      const res = await api.enrichment.discoverWebsite(target.id)
+      if (res.found && res.url) {
+        setWebsiteInput(res.url)
+        toast.success(`Website found: ${res.url}`)
+      } else {
+        toast.warning('Could not auto-detect website for this target')
+      }
+    } catch {
+      toast.error('Auto-detection failed')
+    } finally {
+      setDetectingWebsite(false)
     }
   }
 
@@ -220,16 +238,26 @@ export default function EnrichmentPanel({ target, onEnriched }: Props) {
             <p className="text-sm text-muted-foreground mb-3">No enrichment data yet</p>
 
             {showWebsiteInput && (
-              <div className="mb-3 flex gap-2 items-center max-w-xs mx-auto">
-                <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <Input
-                  type="url"
-                  placeholder="https://company.com (optional)"
-                  value={websiteInput}
-                  onChange={e => setWebsiteInput(e.target.value)}
-                  className="h-7 text-xs rounded-sm"
-                  disabled={loading || savingWebsite}
-                />
+              <div className="mb-3 max-w-xs mx-auto">
+                <div className="flex gap-2 items-center">
+                  <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <Input
+                    type="url"
+                    placeholder="https://company.com (optional)"
+                    value={websiteInput}
+                    onChange={e => setWebsiteInput(e.target.value)}
+                    className="h-7 text-xs rounded-sm"
+                    disabled={loading || savingWebsite}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAutoDetect}
+                  disabled={detectingWebsite || loading}
+                  className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 cursor-pointer disabled:opacity-50 mt-1"
+                >
+                  {detectingWebsite ? 'Detecting…' : 'Auto-detect website'}
+                </button>
               </div>
             )}
 
@@ -487,6 +515,14 @@ export default function EnrichmentPanel({ target, onEnriched }: Props) {
                     {savingWebsite ? <RefreshCw className="h-3 w-3 animate-spin" /> : 'Save'}
                   </Button>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleAutoDetect}
+                  disabled={detectingWebsite || loading}
+                  className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 cursor-pointer disabled:opacity-50 mt-1"
+                >
+                  {detectingWebsite ? 'Detecting…' : 'Auto-detect website'}
+                </button>
               </div>
             )}
 

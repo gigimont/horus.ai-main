@@ -7,7 +7,7 @@ import ImportButton from './components/ImportButton'
 import ScoreAllButton from './components/ScoreAllButton'
 import MapView from './components/MapView'
 import { Skeleton } from '@/components/ui/skeleton'
-import { List, Map, Download, MapPin, Sparkles, Database } from 'lucide-react'
+import { List, Map, Download, MapPin, Sparkles, Database, Search, Network } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -19,6 +19,8 @@ export default function DiscoveryPage() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const [view, setView] = useState<'table' | 'map'>('table')
   const [enrichAllLoading, setEnrichAllLoading] = useState(false)
+  const [findWebsitesLoading, setFindWebsitesLoading] = useState(false)
+  const [networkScanLoading, setNetworkScanLoading] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -62,6 +64,48 @@ export default function DiscoveryPage() {
       }
     } catch {
       toast.error('Geocoding failed', { id: toastId })
+    }
+  }
+
+  const handleFindWebsites = async () => {
+    setFindWebsitesLoading(true)
+    const toastId = toast.loading('Searching for company websites…')
+    try {
+      const res = await api.enrichment.discoverWebsites(false)
+      if (res.found === 0) {
+        toast.success('No new websites found', { id: toastId })
+      } else {
+        toast.success(
+          `Found ${res.found} of ${res.total_searched} websites`,
+          {
+            id: toastId,
+            description: res.found > 0 ? 'Re-enrich those targets to extract web intelligence.' : undefined,
+            duration: 6000,
+          }
+        )
+      }
+      if (res.found > 0) load()
+    } catch {
+      toast.error('Website discovery failed', { id: toastId })
+    } finally {
+      setFindWebsitesLoading(false)
+    }
+  }
+
+  const handleNetworkScan = async () => {
+    setNetworkScanLoading(true)
+    const toastId = toast.loading('Scanning officer network…')
+    try {
+      const res = await api.officerNetwork.scan()
+      const { shared_officers_found, family_clusters_found } = res.stats
+      toast.success(
+        `Found ${shared_officers_found} shared officers, ${family_clusters_found} family clusters`,
+        { id: toastId }
+      )
+    } catch {
+      toast.error('Network scan failed', { id: toastId })
+    } finally {
+      setNetworkScanLoading(false)
     }
   }
 
@@ -139,12 +183,28 @@ export default function DiscoveryPage() {
           </button>
           <ScoreAllButton onComplete={load} />
           <button
+            onClick={handleFindWebsites}
+            disabled={findWebsitesLoading}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors disabled:opacity-50 cursor-pointer"
+          >
+            <Search className="h-3.5 w-3.5" />
+            {findWebsitesLoading ? 'Searching…' : 'Find websites'}
+          </button>
+          <button
             onClick={handleEnrichAll}
             disabled={enrichAllLoading}
             className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors disabled:opacity-50 cursor-pointer"
           >
             <Database className="h-3.5 w-3.5" />
             {enrichAllLoading ? 'Enriching…' : 'Enrich all'}
+          </button>
+          <button
+            onClick={handleNetworkScan}
+            disabled={networkScanLoading}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-sm border border-input bg-background text-xs hover:bg-accent transition-colors disabled:opacity-50 cursor-pointer"
+          >
+            <Network className="h-3.5 w-3.5" />
+            {networkScanLoading ? 'Scanning…' : 'Scan network'}
           </button>
         </div>
       </div>
