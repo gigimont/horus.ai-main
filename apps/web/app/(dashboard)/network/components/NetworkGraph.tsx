@@ -96,12 +96,15 @@ export default function NetworkGraph({ nodes, edges, activeEdgeTypes, minStrengt
     const simulation = d3.forceSimulation<SimNode>(simNodes)
       .force('link', d3.forceLink<SimNode, SimLink>(simLinks)
         .id(d => d.id)
-        .distance(d => 120 - d.strength * 60)
-        .strength(d => d.strength * 0.4)
+        .distance(200)
+        .strength(0.3)
       )
-      .force('charge', d3.forceManyBody().strength(-300))
-      .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide<SimNode>().radius(d => nodeRadius(d.revenue) + 8))
+      .force('charge', d3.forceManyBody().strength(-800).distanceMax(600))
+      .force('center', d3.forceCenter(width / 2, height / 2).strength(0.05))
+      .force('collision', d3.forceCollide<SimNode>().radius(d => nodeRadius(d.revenue) + 30).strength(0.8))
+      .force('x', d3.forceX(width / 2).strength(0.03))
+      .force('y', d3.forceY(height / 2).strength(0.03))
+      .alphaDecay(0.02)
 
     const tooltip = d3.select('body')
       .selectAll<HTMLDivElement, unknown>('.network-tooltip')
@@ -176,13 +179,46 @@ export default function NetworkGraph({ nodes, edges, activeEdgeTypes, minStrengt
       .attr('stroke', '#0f172a')
       .attr('stroke-width', 2)
 
+    // Count edges per node for label sizing
+    const edgeCount = new Map<string, number>()
+    simLinks.forEach(l => {
+      const src = typeof l.source === 'object' ? (l.source as SimNode).id : l.source as string
+      const tgt = typeof l.target === 'object' ? (l.target as SimNode).id : l.target as string
+      edgeCount.set(src, (edgeCount.get(src) ?? 0) + 1)
+      edgeCount.set(tgt, (edgeCount.get(tgt) ?? 0) + 1)
+    })
+
+    // Background rect for labels
+    node.append('rect')
+      .attr('rx', 2)
+      .attr('ry', 2)
+      .attr('fill', '#0a0f1a')
+      .attr('fill-opacity', 0.75)
+      .attr('pointer-events', 'none')
+
+    // Label text
     node.append('text')
-      .text(d => d.name.length > 14 ? d.name.slice(0, 13) + '\u2026' : d.name)
+      .text(d => d.name)
       .attr('text-anchor', 'middle')
-      .attr('dy', d => nodeRadius(d.revenue) + 13)
-      .attr('font-size', 11)
+      .attr('dy', d => nodeRadius(d.revenue) + 14)
+      .attr('font-size', d => (edgeCount.get(d.id) ?? 0) >= 6 ? 9 : 11)
       .attr('fill', '#cbd5e1')
       .attr('pointer-events', 'none')
+
+    // Size background rects to fit their sibling text
+    node.each(function() {
+      const g = d3.select(this)
+      const textEl = g.select<SVGTextElement>('text').node()
+      const rectEl = g.select<SVGRectElement>('rect').node()
+      if (textEl && rectEl) {
+        const bbox = textEl.getBBox()
+        d3.select(rectEl)
+          .attr('x', bbox.x - 2)
+          .attr('y', bbox.y - 1)
+          .attr('width', bbox.width + 4)
+          .attr('height', bbox.height + 2)
+      }
+    })
 
     simulation.on('tick', () => {
       link
