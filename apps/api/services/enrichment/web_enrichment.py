@@ -63,6 +63,7 @@ Return ONLY valid JSON with this exact structure:
 }
 
 succession_risk must be one of: "high", "medium", "low", "unknown".
+IMPORTANT: If the company is a family business AND there is no visible next-generation successor on the website, succession_risk should be "high", not "unknown". The absence of succession planning on a family business website is itself a strong signal of high succession risk. Only use "unknown" when you genuinely cannot determine if the company is family-owned.
 If a field has no data, use null or empty array. Never invent data — only extract what is actually on the page.
 Respond ONLY with valid JSON. No preamble, no markdown fences."""
 

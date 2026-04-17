@@ -27,13 +27,15 @@ interface Props {
   onEnriched?: () => void
 }
 
-function StatusBadge({ status }: { status: Target['enrichment_status'] }) {
+function StatusBadge({ status }: { status: string | null | undefined }) {
   const map: Record<string, { label: string; className: string }> = {
-    enriched: { label: 'Enriched', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-    partial:  { label: 'Partial',  className: 'bg-amber-50 text-amber-700 border-amber-200' },
-    failed:   { label: 'Failed',   className: 'bg-red-50 text-red-700 border-red-200' },
-    pending:  { label: 'Pending',  className: 'bg-blue-50 text-blue-700 border-blue-200' },
-    none:     { label: 'Not enriched', className: 'bg-muted text-muted-foreground border-border' },
+    enriched:  { label: 'Enriched', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+    completed: { label: 'Enriched', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+    partial:   { label: 'Partial',  className: 'bg-amber-50 text-amber-700 border-amber-200' },
+    failed:    { label: 'Failed',   className: 'bg-red-50 text-red-700 border-red-200' },
+    pending:   { label: 'Pending',  className: 'bg-blue-50 text-blue-700 border-blue-200' },
+    running:   { label: 'Running',  className: 'bg-blue-50 text-blue-700 border-blue-200' },
+    none:      { label: 'Not enriched', className: 'bg-muted text-muted-foreground border-border' },
   }
   const cfg = map[status ?? 'none'] ?? map['none']
   return (
@@ -106,6 +108,8 @@ export default function EnrichmentPanel({ target, onEnriched }: Props) {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [websiteInput, setWebsiteInput] = useState('')
   const [savingWebsite, setSavingWebsite] = useState(false)
+  const [industriesExpanded, setIndustriesExpanded] = useState(false)
+  const [productsExpanded, setProductsExpanded] = useState(false)
 
   const hasData = target.enrichment_status === 'enriched' || target.enrichment_status === 'partial'
   const showWebsiteInput = !target.website
@@ -366,7 +370,7 @@ export default function EnrichmentPanel({ target, onEnriched }: Props) {
               <>
                 <SectionTitle>Business Profile</SectionTitle>
                 {target.geographic_focus && (
-                  <div className="flex items-start gap-3 py-2 border-b border-border last:border-0">
+                  <div className="flex items-start gap-3 py-2 border-b border-border">
                     <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
                     <div className="min-w-0">
                       <p className="text-xs text-muted-foreground">Geographic focus</p>
@@ -374,38 +378,85 @@ export default function EnrichmentPanel({ target, onEnriched }: Props) {
                     </div>
                   </div>
                 )}
-                {target.industries_served && target.industries_served.length > 0 && (
-                  <div className="flex items-start gap-3 py-2 border-b border-border last:border-0">
-                    <Briefcase className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-xs text-muted-foreground">Industries served</p>
-                      <p className="text-sm font-medium text-foreground">
-                        {target.industries_served.slice(0, 2).join(', ')}
-                        {target.industries_served.length > 2 && (
-                          <span className="text-muted-foreground ml-1 text-xs">
-                            +{target.industries_served.length - 2} more
-                          </span>
-                        )}
-                      </p>
+                {target.industries_served && target.industries_served.length > 0 && (() => {
+                  const LIMIT = 8
+                  const visible = industriesExpanded ? target.industries_served : target.industries_served.slice(0, LIMIT)
+                  const overflow = target.industries_served.length - LIMIT
+                  return (
+                    <div className="flex items-start gap-3 py-2 border-b border-border">
+                      <Briefcase className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                      <div className="min-w-0 w-full">
+                        <p className="text-xs text-muted-foreground mb-1">Industries served</p>
+                        <div className="flex flex-wrap gap-1">
+                          {visible.map((item, i) => (
+                            <span key={i} className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs bg-muted text-muted-foreground border border-border">
+                              {item}
+                            </span>
+                          ))}
+                          {!industriesExpanded && overflow > 0 && (
+                            <button
+                              onClick={() => setIndustriesExpanded(true)}
+                              className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 cursor-pointer"
+                            >
+                              +{overflow} more
+                            </button>
+                          )}
+                          {industriesExpanded && target.industries_served.length > LIMIT && (
+                            <button
+                              onClick={() => setIndustriesExpanded(false)}
+                              className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 cursor-pointer"
+                            >
+                              Show less
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
-                {target.products_services && target.products_services.length > 0 && (
-                  <div className="flex items-start gap-3 py-2 border-b border-border last:border-0">
-                    <Building2 className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-xs text-muted-foreground">Products &amp; services</p>
-                      <p className="text-sm font-medium text-foreground">
-                        {target.products_services.slice(0, 3).join(', ')}
-                        {target.products_services.length > 3 && (
-                          <span className="text-muted-foreground ml-1 text-xs">
-                            +{target.products_services.length - 3} more
-                          </span>
+                  )
+                })()}
+                {target.products_services && target.products_services.length > 0 && (() => {
+                  const LIMIT = 6
+                  const visible = productsExpanded ? target.products_services! : target.products_services!.slice(0, LIMIT)
+                  const overflow = target.products_services!.length - LIMIT
+                  const webAnalysis = target.web_analysis as Record<string, unknown> | null
+                  const marketNote = (webAnalysis?.confidence_reasoning as string | undefined) ?? null
+                  return (
+                    <div className="flex items-start gap-3 py-2 border-b border-border">
+                      <Building2 className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                      <div className="min-w-0 w-full">
+                        <p className="text-xs text-muted-foreground mb-1">Products &amp; services</p>
+                        <div className="flex flex-wrap gap-1">
+                          {visible.map((item, i) => (
+                            <span key={i} className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs bg-muted text-muted-foreground border border-border">
+                              {item}
+                            </span>
+                          ))}
+                          {!productsExpanded && overflow > 0 && (
+                            <button
+                              onClick={() => setProductsExpanded(true)}
+                              className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 cursor-pointer"
+                            >
+                              +{overflow} more
+                            </button>
+                          )}
+                          {productsExpanded && target.products_services!.length > LIMIT && (
+                            <button
+                              onClick={() => setProductsExpanded(false)}
+                              className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 cursor-pointer"
+                            >
+                              Show less
+                            </button>
+                          )}
+                        </div>
+                        {marketNote && (
+                          <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed italic">
+                            {marketNote}
+                          </p>
                         )}
-                      </p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )
+                })()}
               </>
             )}
 
