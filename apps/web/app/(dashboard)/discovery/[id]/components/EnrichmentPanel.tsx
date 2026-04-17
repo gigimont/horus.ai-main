@@ -108,14 +108,12 @@ export default function EnrichmentPanel({ target, onEnriched }: Props) {
   const [savingWebsite, setSavingWebsite] = useState(false)
 
   const hasData = target.enrichment_status === 'enriched' || target.enrichment_status === 'partial'
-  const showWebsiteInput =
-    !target.website &&
-    (target.enrichment_status === 'none' || target.enrichment_status == null)
+  const showWebsiteInput = !target.website
 
   async function handleSaveWebsiteAndEnrich() {
     const url = websiteInput.trim()
     if (!url) {
-      handleEnrich(false)
+      handleEnrich(hasData)
       return
     }
     setSavingWebsite(true)
@@ -127,7 +125,8 @@ export default function EnrichmentPanel({ target, onEnriched }: Props) {
       return
     }
     setSavingWebsite(false)
-    handleEnrich(false)
+    // force=true when already enriched (avoids 409 throttle)
+    handleEnrich(hasData)
   }
 
   async function handleEnrich(force = false) {
@@ -408,6 +407,36 @@ export default function EnrichmentPanel({ target, onEnriched }: Props) {
                   </div>
                 )}
               </>
+            )}
+
+            {/* --- Website URL input (when GLEIF enriched but no web enrichment yet) --- */}
+            {showWebsiteInput && (
+              <div className="pt-3 border-t border-border mt-2">
+                <p className="text-xs text-muted-foreground mb-1.5">
+                  Website URL — Add a website to enable AI enrichment
+                </p>
+                <div className="flex gap-2 items-center">
+                  <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <Input
+                    type="url"
+                    placeholder="https://company.com"
+                    value={websiteInput}
+                    onChange={e => setWebsiteInput(e.target.value)}
+                    className="h-7 text-xs rounded-sm flex-1"
+                    disabled={loading || savingWebsite}
+                    onKeyDown={e => { if (e.key === 'Enter') handleSaveWebsiteAndEnrich() }}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2.5 text-xs rounded-sm cursor-pointer shrink-0"
+                    disabled={loading || savingWebsite || !websiteInput.trim()}
+                    onClick={handleSaveWebsiteAndEnrich}
+                  >
+                    {savingWebsite ? <RefreshCw className="h-3 w-3 animate-spin" /> : 'Save'}
+                  </Button>
+                </div>
+              </div>
             )}
 
             {/* --- Data sources --- */}
