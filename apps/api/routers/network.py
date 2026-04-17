@@ -1,10 +1,13 @@
 # apps/api/routers/network.py
 import json
 import logging
+from anthropic import Anthropic
 from fastapi import APIRouter, Depends, HTTPException
 from supabase import Client
 from dependencies import get_db, get_tenant_id
 from services.network_service import analyse_network
+
+_anthropic = Anthropic()
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -239,9 +242,7 @@ async def get_network_summary(
         "all_target_names": list(target_name_map.values()),
     }
 
-    from anthropic import Anthropic
-    client = Anthropic()
-    response = client.messages.create(
+    response = _anthropic.messages.create(
         model="claude-sonnet-4-20250514",
         max_tokens=1024,
         system=SUMMARY_SYSTEM_PROMPT,
